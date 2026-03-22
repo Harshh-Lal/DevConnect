@@ -1,5 +1,6 @@
 import prisma from '../utils/prisma.js';
-import bcrypt, { hash } from 'bcryptjs';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 export const register = async (req, res) => {
     try {
@@ -47,8 +48,6 @@ export const register = async (req, res) => {
 
 export const login = async (req, res) => {
     try {
-        console.log("1. Login route hit! Email:", req.body.email);
-
         const { email, password } = req.body;
 
         if (!email || !password) {
@@ -63,14 +62,10 @@ export const login = async (req, res) => {
             return res.status(401).json({ message: 'Invalid credentials.' });
         }
 
-        console.log("2. User found in DB! Checking password...");
-
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(401).json({ message: "Invalid credentials." });
         }
-
-        console.log("3. Password matches! Secret is:", process.env.JWT_SECRET ? "Exists" : "MISSING!");
 
         const payload = { userId: user.id };
 
@@ -92,3 +87,28 @@ export const login = async (req, res) => {
         res.status(500).json({ message: 'Internal server error.' });
     }
 };
+
+export const getMe = async (req, res) => {
+    try {
+        const userID = req.user.userId;
+
+        const user = await prisma.user.findUnique({
+            where: { id: userID },
+            select: {
+                id: true,
+                username: true,
+                email: true,
+                createdAt: true,
+            },
+        });
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found." })
+        }
+
+        res.status(200).json(user);
+    } catch (error) {
+        console.error('Get Me Error:', error);
+        res.status(500).json({ message: 'Internal server error.' });
+    }
+}
