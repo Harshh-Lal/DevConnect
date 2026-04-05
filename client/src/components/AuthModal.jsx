@@ -1,4 +1,5 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Auth, AuthView } from './ui/auth-form'
 
@@ -24,7 +25,12 @@ const AuthModal = ({ isOpen, initialView = AuthView.SIGN_IN, onClose }) => {
     return () => { document.body.style.overflow = '' }
   }, [isOpen])
 
-  return (
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+
+  if (!mounted) return null
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <>
@@ -60,7 +66,8 @@ const AuthModal = ({ isOpen, initialView = AuthView.SIGN_IN, onClose }) => {
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   )
 }
 

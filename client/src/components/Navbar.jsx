@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { cn } from '../lib/utils'
 import { useScroll } from './ui/use-scroll'
 import { MenuToggleIcon } from './ui/menu-toggle-icon'
@@ -7,16 +7,48 @@ import { AuthView } from './ui/auth-form'
 
 const navLinks = [
   { label: 'Features', href: '#features' },
-  { label: 'Explore',  href: '#explore'  },
+  { label: 'Explore', href: '#explore' },
   { label: 'Developers', href: '#developers' },
 ]
 
 const Navbar = () => {
-  const [open, setOpen]   = useState(false)
-  const scrolled          = useScroll(10)
+  const [open, setOpen] = useState(false)
+  const scrolled = useScroll(10)
 
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [authInitialView, setAuthInitialView] = useState(AuthView.SIGN_IN)
+
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  const [profileOpen, setProfileOpen] = useState(false)
+  const profileDropdownRef = useRef(null)
+
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    if (token) {
+      setIsLoggedIn(true)
+    }
+  }, [])
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // If the dropdown is open, AND the click happened outside of our ref, close it!
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
+        setProfileOpen(false)
+      }
+    }
+    // Listen for mouse clicks on the whole page
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
+  const handleLogout = () => {
+    localStorage.removeItem('token')
+    setIsLoggedIn(false)
+    window.location.href = '/' // Kick them back to landing page
+  }
 
   const openAuth = (view) => {
     setAuthInitialView(view)
@@ -39,13 +71,13 @@ const Navbar = () => {
         'md:max-w-6xl md:rounded-md md:border md:border-transparent md:transition-all md:duration-300 md:ease-out',
         scrolled && !open
           ? [
-              // scrolled desktop state — floating card
-              'md:top-4 md:max-w-5xl md:border-[#222222] md:shadow-lg',
-              'bg-[#0a0a0a]/90 backdrop-blur-md',
-            ]
+            // scrolled desktop state — floating card
+            'md:top-4 md:max-w-5xl md:border-[#222222] md:shadow-lg',
+            'bg-[#0a0a0a]/90 backdrop-blur-md',
+          ]
           : open
-          ? 'bg-[#0a0a0a]/95'
-          : 'bg-transparent',
+            ? 'bg-[#0a0a0a]/95'
+            : 'bg-transparent',
       )}
     >
       <nav
@@ -85,28 +117,67 @@ const Navbar = () => {
 
         {/* ── Desktop action buttons ── */}
         <div className="hidden md:flex items-center gap-2">
-          <button
-            id="navbar-login-btn"
-            onClick={() => openAuth(AuthView.SIGN_IN)}
-            className={cn(
-              'border border-[#333] text-[#f0f0f0] font-sans',
-              'px-4 py-1.5 text-sm rounded-sm',
-              'hover:bg-[#181818] transition-colors duration-150 cursor-pointer',
-            )}
-          >
-            Log In
-          </button>
-          <button
-            id="navbar-cta-btn"
-            onClick={() => openAuth(AuthView.SIGN_UP)}
-            className={cn(
-              'bg-[#f5a623] text-black font-semibold font-sans',
-              'px-4 py-1.5 text-sm rounded-sm',
-              'hover:bg-[#e09620] transition-colors duration-150 cursor-pointer',
-            )}
-          >
-            Get Started →
-          </button>
+          {isLoggedIn ? (
+            /* ── STATE: LOGGED IN ── */
+            <div className="relative cursor-pointer" ref={profileDropdownRef}>
+              {/* Profile Picture */}
+              <button 
+                onClick={() => setProfileOpen(!profileOpen)}
+                className="flex items-center justify-center rounded-full outline-none focus:ring-2 focus:ring-[#f5a623]"
+              >
+                <img 
+                  src="https://github.com/shadcn.png" // Placeholder image
+                  alt="Profile" 
+                  className="w-8 h-8 rounded-full border border-[#333] hover:border-[#666] transition-colors"
+                />
+              </button>
+              
+              {/* Dropdown Menu */}
+              {profileOpen && (
+                <div className="absolute right-0 top-full mt-2 w-48 p-2 bg-[#111] border border-[#2a2a2a] rounded-md shadow-xl z-[100]">
+                  <a href="/profile" className="block w-full text-left px-3 py-2 text-sm text-[#ccc] hover:bg-[#181818] hover:text-[#f0f0f0] rounded-sm transition-colors">
+                    View Account
+                  </a>
+                  <a href="/settings" className="block w-full text-left px-3 py-2 text-sm text-[#ccc] hover:bg-[#181818] hover:text-[#f0f0f0] rounded-sm transition-colors">
+                    Settings
+                  </a>
+                  <div className="h-px bg-[#2a2a2a] my-1"></div>
+                  <button 
+                    onClick={handleLogout}
+                    className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-[#181818] hover:text-red-300 rounded-sm transition-colors"
+                  >
+                    Log out
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* ── STATE: LOGGED OUT ── */
+            <>
+              <button
+                id="navbar-login-btn"
+                onClick={() => openAuth(AuthView.SIGN_IN)}
+                className={cn(
+                  'border border-[#333] text-[#f0f0f0] font-sans',
+                  'px-4 py-1.5 text-sm rounded-sm',
+                  'hover:bg-[#181818] transition-colors duration-150 cursor-pointer',
+                )}
+              >
+                Log In
+              </button>
+              <button
+                id="navbar-cta-btn"
+                onClick={() => openAuth(AuthView.SIGN_UP)}
+                className={cn(
+                  'bg-[#f5a623] text-black font-semibold font-sans',
+                  'px-4 py-1.5 text-sm rounded-sm',
+                  'hover:bg-[#e09620] transition-colors duration-150 cursor-pointer',
+                )}
+              >
+                Get Started →
+              </button>
+            </>
+          )}
         </div>
 
         {/* ── Mobile hamburger ── */}
@@ -164,28 +235,47 @@ const Navbar = () => {
 
           {/* Bottom action buttons */}
           <div className="flex flex-col gap-3 pb-4">
-            <button
-              id="mobile-login-btn"
-              onClick={() => openAuth(AuthView.SIGN_IN)}
-              className={cn(
-                'w-full border border-[#333] text-[#f0f0f0] font-sans',
-                'px-4 py-3 text-sm rounded-sm',
-                'hover:bg-[#181818] transition-colors duration-150 cursor-pointer',
-              )}
-            >
-              Log In
-            </button>
-            <button
-              id="mobile-cta-btn"
-              onClick={() => openAuth(AuthView.SIGN_UP)}
-              className={cn(
-                'w-full bg-[#f5a623] text-black font-semibold font-sans',
-                'px-4 py-3 text-sm rounded-sm',
-                'hover:bg-[#e09620] transition-colors duration-150 cursor-pointer',
-              )}
-            >
-              Get Started →
-            </button>
+            {isLoggedIn ? (
+              /* ── STATE: LOGGED IN (MOBILE) ── */
+              <>
+                <div className="flex items-center gap-3 mb-4 px-2">
+                  <img src="https://github.com/shadcn.png" alt="Profile" className="w-10 h-10 rounded-full border border-[#333]" />
+                  <span className="text-[#f0f0f0] font-medium">My Account</span>
+                </div>
+                <a href="/profile" className="w-full text-center border border-[#333] text-[#f0f0f0] px-4 py-3 text-sm rounded-sm hover:bg-[#181818]">
+                  View Account
+                </a>
+                <button onClick={handleLogout} className="w-full bg-red-500/10 text-red-400 border border-red-500/20 font-semibold px-4 py-3 text-sm rounded-sm hover:bg-red-500/20">
+                  Log out
+                </button>
+              </>
+            ) : (
+              /* ── STATE: LOGGED OUT (MOBILE) ── */
+              <>
+                <button
+                  id="mobile-login-btn"
+                  onClick={() => openAuth(AuthView.SIGN_IN)}
+                  className={cn(
+                    'w-full border border-[#333] text-[#f0f0f0] font-sans',
+                    'px-4 py-3 text-sm rounded-sm',
+                    'hover:bg-[#181818] transition-colors duration-150 cursor-pointer',
+                  )}
+                >
+                  Log In
+                </button>
+                <button
+                  id="mobile-cta-btn"
+                  onClick={() => openAuth(AuthView.SIGN_UP)}
+                  className={cn(
+                    'w-full bg-[#f5a623] text-black font-semibold font-sans',
+                    'px-4 py-3 text-sm rounded-sm',
+                    'hover:bg-[#e09620] transition-colors duration-150 cursor-pointer',
+                  )}
+                >
+                  Get Started →
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

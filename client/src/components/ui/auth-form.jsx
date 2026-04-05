@@ -10,6 +10,7 @@ import { Label } from './label'
 import { Separator } from './separator'
 import { Checkbox } from './checkbox'
 import { cn } from '../../lib/utils'
+import { api } from '../../lib/api';
 
 // ─── View constants ───────────────────────────────────────
 const AuthView = {
@@ -136,11 +137,19 @@ function AuthSignIn({ onForgotPassword, onSignUp }) {
     setIsLoading(true)
     setError(null)
     try {
-      await new Promise((r) => setTimeout(r, 1400))
-      // TODO: replace with real auth call
-      setError('Invalid email or password. (Demo mode)')
-    } catch {
-      setError('An unexpected error occurred.')
+      const response = await api.post('/auth/login', { 
+        email: data.email, 
+        password: data.password 
+      })
+
+      localStorage.setItem('token', response.data.token)
+
+      window.location.reload();
+
+      console.log('Logged in successfully as:', response.data.user.username)
+      
+    } catch (err){
+      setError(err.response?.data?.message || 'Invalid email or password.')
     } finally {
       setIsLoading(false)
     }
@@ -252,11 +261,18 @@ function AuthSignUp({ onSignIn }) {
     setIsLoading(true)
     setError(null)
     try {
-      await new Promise((r) => setTimeout(r, 1400))
-      // TODO: replace with real auth call
-      setError('Email already registered. (Demo mode)')
-    } catch {
-      setError('An unexpected error occurred.')
+      const response = await api.post('/auth/register', { 
+        username: data.name, 
+        email: data.email, 
+        password: data.password 
+      })
+      console.log('Registration successful!', response.data)
+      
+      localStorage.setItem('token', response.data.token)
+      
+      window.location.href = '/feed';
+    } catch (err){
+      setError(err.response?.data?.message || 'Failed to create account.')
     } finally {
       setIsLoading(false)
     }
