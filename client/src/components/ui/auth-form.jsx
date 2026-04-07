@@ -11,6 +11,7 @@ import { Separator } from './separator'
 import { Checkbox } from './checkbox'
 import { cn } from '../../lib/utils'
 import { api } from '../../lib/api';
+import { useNavigate } from 'react-router-dom';
 
 // ─── View constants ───────────────────────────────────────
 const AuthView = {
@@ -128,6 +129,8 @@ function AuthSignIn({ onForgotPassword, onSignUp }) {
   const [error, setError] = React.useState(null)
   const [showPassword, setShowPassword] = React.useState(false)
 
+  const navigate = useNavigate();
+
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(signInSchema),
     defaultValues: { email: '', password: '' },
@@ -144,7 +147,7 @@ function AuthSignIn({ onForgotPassword, onSignUp }) {
 
       localStorage.setItem('token', response.data.token)
 
-      window.location.reload();
+      navigate('/home');
 
       console.log('Logged in successfully as:', response.data.user.username)
       
@@ -250,6 +253,8 @@ function AuthSignUp({ onSignIn }) {
   const [error, setError] = React.useState(null)
   const [showPassword, setShowPassword] = React.useState(false)
 
+  const navigate = useNavigate();
+
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm({
     resolver: zodResolver(signUpSchema),
     defaultValues: { name: '', email: '', password: '', terms: false },
@@ -270,7 +275,7 @@ function AuthSignUp({ onSignIn }) {
       
       localStorage.setItem('token', response.data.token)
       
-      window.location.href = '/feed';
+      navigate('/home');
     } catch (err){
       setError(err.response?.data?.message || 'Failed to create account.')
     } finally {
