@@ -20,6 +20,15 @@ const getTechChipClass = (tag) => {
 export default function PostCard({ post, currentUser, onPostDeleted }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showComments, setShowComments] = useState(false);
+
+  const postOwner = post.author || post.user || { username: 'Unknown' };
+  const ownerId = post.authorId || post.userId;
+
+  const initialLikes = post._count?.likes || post.likesCount || 0;
+  const initialComments = post._count?.comments || post.commentsCount || 0;
+
+  const postDescription = post.description || post.content || '';
+  
   const [isLiked, setIsLiked] = useState(post.isLikedByMe || false);
   const [likeCount, setLikeCount] = useState(post.likesCount || 0);
   const [commentCount, setCommentCount] = useState(post.commentsCount || 0);
@@ -74,7 +83,7 @@ export default function PostCard({ post, currentUser, onPostDeleted }) {
     }
   };
 
-  const hasLongDescription = post.description && post.description.length > 150;
+  const hasLongDescription = postDescription.length > 150;
 
   return (
     <div className="rounded-xl border border-[#2a2a2a] bg-[#111111] p-5 transition-colors hover:bg-[#141414] hover:border-[#333333]">
@@ -82,28 +91,28 @@ export default function PostCard({ post, currentUser, onPostDeleted }) {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <Link to={`/users/${post.user.username}`}>
-            {post.user.avatarUrl ? (
-              <img src={post.user.avatarUrl} alt={post.user.displayName} className="h-[40px] w-[40px] rounded-full object-cover" />
+          <Link to={`/users/${postOwner.username}`}>
+            {postOwner.avatarUrl ? (
+              <img src={postOwner.avatarUrl} alt={postOwner.displayName} className="h-[40px] w-[40px] rounded-full object-cover" />
             ) : (
               <div className="flex h-[40px] w-[40px] items-center justify-center rounded-full bg-[#1f1f1f] text-sm font-medium text-[#f5a623]">
-                {getInitials(post.user.displayName || post.user.username)}
+                {getInitials(postOwner.displayName || postOwner.username)}
               </div>
             )}
           </Link>
           <div className="flex flex-col">
             <div className="flex items-baseline gap-2">
-              <Link to={`/users/${post.user.username}`} className="text-[14px] font-semibold text-[#ffffff] hover:underline">
-                {post.user.displayName || post.user.username}
+              <Link to={`/users/${postOwner.username}`} className="text-[14px] font-semibold text-[#ffffff] hover:underline">
+                {postOwner.displayName || postOwner.username}
               </Link>
-              <span className="text-[13px] text-[#666666]">@{post.user.username}</span>
-              <span className="text-[12px] text-[#555555]">· {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}</span>
+              <span className="text-[13px] text-[#666666]">@{postOwner.username}</span>
+              <span className="text-[12px] text-[#555555]">· {post.createdAt ?formatDistanceToNow(new Date(post.createdAt), { addSuffix: true }) : 'Just Now'}</span>
             </div>
           </div>
         </div>
 
         {/* Delete Options */}
-        {currentUser && post.userId === currentUser.id && (
+        {currentUser && ownerId === currentUser.id && (
           <div className="relative z-10">
             {showDeleteConfirm ? (
               <div className="absolute right-0 top-0 flex items-center gap-2 rounded-md bg-[#181818] border border-[#2a2a2a] p-1 shadow-md whitespace-nowrap">
@@ -138,11 +147,11 @@ export default function PostCard({ post, currentUser, onPostDeleted }) {
 
       {/* Body */}
       <div className="mt-4">
-        <h2 className="text-[16px] font-semibold text-[#ffffff] mb-[6px]">{post.title}</h2>
+        {post.title && <h2 className="text-[16px] font-semibold text-[#ffffff] mb-[6px]">{post.title}</h2>}
         <div className="text-[#aaaaaa] text-[14px] whitespace-pre-wrap leading-[1.6]">
           {isExpanded || !hasLongDescription 
-            ? post.description 
-            : `${post.description.substring(0, 150)}...`}
+            ? postDescription 
+            : `${postDescription.substring(0, 150)}...`}
           
           {hasLongDescription && (
             <span 

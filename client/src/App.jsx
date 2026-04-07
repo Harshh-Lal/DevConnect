@@ -6,12 +6,20 @@ import PublicProfilePage from './pages/PublicProfilePage';
 import ExplorePage from './pages/ExplorePage';
 import ProtectedRoute from './components/ProtectedRoute';
 import AppLayout from './components/layout/AppLayout';
+import PublicRoute from './components/PublicRoute';
 
 const App = () => {
   return (
     <Routes>
       {/* The Public Landing Page */}
-      <Route path="/" element={<LandingPage />} />
+      <Route 
+        path="/" 
+        element={
+          <PublicRoute>
+            <LandingPage />
+          </PublicRoute>
+        } 
+      />
 
       {/* The Protected Routes wrapped in AppLayout */}
       <Route element={<ProtectedRoute />}>

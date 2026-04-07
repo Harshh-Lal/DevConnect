@@ -12,9 +12,65 @@ datasource db {
 }
 
 model User {
-  id String @id @default(cuid()) //This generates a long, secure, collision-resistant string (e.g., clq5z...), instead of ids 1, 2 ,3, ....
-  email String @unique
-  password String
-  username String @unique
+  id        String   @id @default(cuid()) //This generates a long, secure, collision-resistant string (e.g., clq5z...), instead of ids 1, 2 ,3, ....
+  email     String   @unique
+  password  String
+  username  String   @unique
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // --- NEW: Relationships to Content ---
+  posts    Post[]
+  comments Comment[]
+  likes    Like[]
+}
+
+model Post {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  githubUrl   String?
+  liveUrl     String?
+  tags        String[]
+
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  comments Comment[]
+  likes    Like[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Comment {
+  id      String @id @default(uuid())
+  content String
+
+  // Who wrote the comment?
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  // Which post is it on?
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+model Like {
+  id String @id @default(uuid())
+
+  // Who clicked like?
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // What post did they like?
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  // Ensure a user can only like a specific post ONE time
+  @@unique([userId, postId])
 }

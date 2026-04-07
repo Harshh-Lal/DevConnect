@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axiosInstance from '../lib/axios';
 import { useAuth } from '../context/AuthContext';
-import { Telescope } from 'lucide-react';
+import { Telescope, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import PostComposer from '../components/feed/PostComposer';
@@ -13,69 +13,83 @@ import WhoToFollow from '../components/sidebar/WhoToFollow';
 export default function HomePage() {
   const { currentUser } = useAuth();
   const [posts, setPosts] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [nextCursor, setNextCursor] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
+
+  //two seperate loading states for better ux
+  const [isLoading, setIsLoading] = useState(true); //for initial page loading
+  const [isFetchingMore, setIsFetchingMore] = useState(false); // for scrolling 
+
   const [activeTab, setActiveTab] = useState('following');
 
-  useEffect(() => {
-    const fetchFeed = async () => {
-      setIsLoading(true);
-      try {
-        if (import.meta.env.DEV) {
-          await new Promise(resolve => setTimeout(resolve, 800));
-          setPosts([
-            {
-              id: Math.random().toString(),
-              title: activeTab === 'for-you' ? 'Global explore post!' : 'DevConnect is finally live!',
-              description: 'It took weeks of sleepless nights, but I finally shipped the first version. Built securely with React, Vite, Node and Tailwind. Let me know what you think!',
-              githubUrl: 'https://github.com/react/react',
-              liveUrl: 'https://react.dev',
-              tags: ['React', 'Node.js', 'TailwindCSS'],
-              createdAt: new Date(Date.now() - 10000000).toISOString(),
-              likesCount: 142,
-              commentsCount: 12,
-              isLikedByMe: false,
-              userId: 'dev123',
-              user: {
-                username: 'thecreator',
-                displayName: 'The Creator',
-                avatarUrl: ''
-              }
-            },
-            {
-              id: Math.random().toString(),
-              title: 'A cool python script for automating boring stuff',
-              description: 'Just pushed a small python utility that scrapes your favorite sites and emails you a morning brief.',
-              githubUrl: 'https://github.com/python/cpython',
-              tags: ['Python'],
-              createdAt: new Date(Date.now() - 86400000).toISOString(),
-              likesCount: 45,
-              commentsCount: 3,
-              isLikedByMe: true,
-              userId: 'pyfan',
-              user: {
-                username: 'pyfan',
-                displayName: 'Py Fan',
-                avatarUrl: ''
-              }
-            }
-          ]);
-          setIsLoading(false);
-          return;
-        }
+  const fetchFeed = async (cursor = null) => {
+    if (!cursor) setIsLoading(true);
+    else setIsFetchingMore(true);
 
-        const endpoint = activeTab === 'for-you' ? '/posts/explore' : '/posts/feed';
-        const response = await axiosInstance.get(endpoint);
-        setPosts(response.data.posts || response.data);
-      } catch (error) {
-        console.error('Failed to load feed', error);
-      } finally {
-        setIsLoading(false);
+    try {
+      // if (import.meta.env.DEV && !cursor) {
+      //   await new Promise(resolve => setTimeout(resolve, 800));
+      //   setPosts([]);
+      //   setIsLoading(false);
+      //   setHasMore(false);
+      //   return;
+      // }
+
+      const endpoint = activeTab === 'for-you' ? '/posts/explore' : '/posts/feed';
+      const params = cursor ? `?cursor=${cursor}&limit=5` : '?limit=5';
+      const response = await axiosInstance.get(`${endpoint}${params}`);
+
+      const newPosts = response.data.posts || response.data;
+      const newCursor = response.data.nextCursor || null;
+      // const response = await axiosInstance.get(endpoint);
+
+      if (cursor) {
+        setPosts((prev) => [...prev, ...newPosts]); // Scrolling: Add to bottom
+      } else {
+        setPosts(newPosts); // Initial load: Replace everything
       }
-    };
 
-    fetchFeed();
+      setNextCursor(newCursor);
+      setHasMore(newCursor !== null && newPosts.length > 0);
+
+    } catch (error) {
+      console.error('Failed to load feed', error);
+    } finally {
+      setIsLoading(false);
+      setIsFetchingMore(false);
+    }
+  };
+
+  useEffect(() => {
+    setPosts([]);
+    setNextCursor(null);
+    setHasMore(true);
+    fetchFeed(null);
   }, [activeTab]);
 
+
+  const observer = useRef();
+
+  const lastPostElementRef = useCallback((node) => {
+    // Stop if we are currently loading something
+    if (isLoading || isFetchingMore) return;
+
+    // Disconnect the old observer
+    if (observer.current) observer.current.disconnect();
+
+    // Create a new observer
+    observer.current = new IntersectionObserver(entries => {
+      // If the user scrolls to the bottom AND there is more data in the database
+      if (entries[0].isIntersecting && hasMore) {
+        fetchFeed(nextCursor);
+      }
+    });
+
+    if (node) observer.current.observe(node);
+
+  }, [isLoading, isFetchingMore, hasMore, nextCursor]);
+
+  // Handlers 
   const handlePostCreated = (newPost) => {
     setPosts([newPost, ...posts]);
   };
@@ -85,7 +99,7 @@ export default function HomePage() {
   };
 
   return (
-    <div 
+    <div
       className="min-h-[calc(100vh-56px)] md:min-h-[calc(100vh-60px)] py-6 px-4 sm:px-6 lg:px-8"
       style={{
         backgroundColor: '#0a0a0a',
@@ -97,7 +111,7 @@ export default function HomePage() {
       }}
     >
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 md:grid-cols-[1fr_260px] lg:grid-cols-[260px_1fr_300px]">
-        
+
         {/* Left Sidebar (Desktop Only) */}
         <div className="hidden lg:block relative">
           <div className="sticky" style={{ top: 'calc(60px + 16px)' }}>
@@ -113,9 +127,8 @@ export default function HomePage() {
           <div className="mb-6 flex border-b border-[#2a2a2a] mt-6">
             <button
               onClick={() => setActiveTab('for-you')}
-              className={`flex-1 pb-3 text-sm font-medium transition-colors relative ${
-                activeTab === 'for-you' ? 'text-[#ffffff]' : 'text-[#666666] hover:text-[#999999]'
-              }`}
+              className={`flex-1 pb-3 text-sm font-medium transition-colors relative ${activeTab === 'for-you' ? 'text-[#ffffff]' : 'text-[#666666] hover:text-[#999999]'
+                }`}
             >
               For You
               {activeTab === 'for-you' && (
@@ -124,9 +137,8 @@ export default function HomePage() {
             </button>
             <button
               onClick={() => setActiveTab('following')}
-              className={`flex-1 pb-3 text-sm font-medium transition-colors relative ${
-                activeTab === 'following' ? 'text-[#ffffff]' : 'text-[#666666] hover:text-[#999999]'
-              }`}
+              className={`flex-1 pb-3 text-sm font-medium transition-colors relative ${activeTab === 'following' ? 'text-[#ffffff]' : 'text-[#666666] hover:text-[#999999]'
+                }`}
             >
               Following
               {activeTab === 'following' && (
@@ -150,8 +162,8 @@ export default function HomePage() {
               <p className="mt-2 text-[#888888] max-w-sm">
                 Follow some developers to see their projects here, or share what you're working on!
               </p>
-              <Link 
-                to="/explore" 
+              <Link
+                to="/explore"
                 className="mt-6 rounded-lg bg-[#f5a623] px-6 py-2.5 font-semibold text-[#000000] transition-colors hover:bg-[#e09415]"
               >
                 Explore Developers
@@ -160,10 +172,10 @@ export default function HomePage() {
           ) : (
             <div className="space-y-3">
               {posts.map((post) => (
-                <PostCard 
-                  key={post.id} 
-                  post={post} 
-                  currentUser={currentUser} 
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  currentUser={currentUser}
                   onPostDeleted={handlePostDeleted}
                 />
               ))}

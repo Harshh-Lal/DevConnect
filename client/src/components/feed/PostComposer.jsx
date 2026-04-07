@@ -9,6 +9,8 @@ import { toast } from 'react-hot-toast';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
+import { api } from '../../lib/api';
+
 
 const postSchema = z.object({
   title: z.string().min(1, 'Title is required').max(100, 'Title cannot exceed 100 characters'),
@@ -73,29 +75,30 @@ export default function PostComposer({ onPostCreated }) {
         tags: selectedTags,
       };
 
-      if (import.meta.env.DEV) {
-        await new Promise(resolve => setTimeout(resolve, 800));
-        const newPost = {
-          id: Math.random().toString(36).substring(7),
-          ...postData,
-          userId: currentUser.id,
-          user: {
-            username: currentUser.username,
-            displayName: currentUser.displayName,
-            avatarUrl: currentUser.avatarUrl,
-          },
-          createdAt: new Date().toISOString(),
-          likesCount: 0,
-          commentsCount: 0,
-          isLikedByMe: false,
-        };
-        onPostCreated(newPost);
-        toast.success('Project posted!');
-        handleClose();
-        return;
-      }
+      // if (import.meta.env.DEV) {
+      //   await new Promise(resolve => setTimeout(resolve, 800));
+      //   const newPost = {
+      //     id: Math.random().toString(36).substring(7),
+      //     ...postData,
+      //     userId: currentUser.id,
+      //     user: {
+      //       username: currentUser.username,
+      //       displayName: currentUser.displayName,
+      //       avatarUrl: currentUser.avatarUrl,
+      //     },
+      //     createdAt: new Date().toISOString(),
+      //     likesCount: 0,
+      //     commentsCount: 0,
+      //     isLikedByMe: false,
+      //   };
+      //   onPostCreated(newPost);
+      //   toast.success('Project posted!');
+      //   handleClose();
+      //   return;
+      // }
 
-      const response = await axiosInstance.post('/posts', postData);
+      const response = await axiosInstance.post('/posts/create', postData);
+      
       onPostCreated(response.data.post || response.data);
       toast.success('Project posted!');
       handleClose();
