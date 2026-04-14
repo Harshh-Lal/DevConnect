@@ -2,8 +2,10 @@ import React from 'react';
 import { Outlet, NavLink, Link } from 'react-router-dom';
 import { Home, Compass, Plus, User } from 'lucide-react';
 import AppNavbar from './AppNavbar';
+import { useAuth } from '../../context/AuthContext';
 
 export default function AppLayout() {
+  const { currentUser } = useAuth();
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-[#ffffff] relative">
       <AppNavbar />
@@ -37,7 +39,7 @@ export default function AppLayout() {
         </Link>
         
         <NavLink 
-          to="/profile"
+          to={`/users/${currentUser?.username}`}
           className={({ isActive }) => `p-2 ${isActive ? 'text-[#f5a623]' : 'text-[#555555]'}`}
         >
           <User className="w-6 h-6" />

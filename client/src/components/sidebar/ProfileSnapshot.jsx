@@ -70,7 +70,7 @@ export default function ProfileSnapshot() {
         )}
 
         <Link
-          to="/profile/edit"
+          to={`/users/${currentUser?.username}`}
           className="mt-6 flex w-full items-center justify-center rounded-lg border border-[#2a2a2a] bg-transparent py-2 text-sm text-[#888888] transition-colors hover:border-[#f5a623] hover:text-[#f5a623]"
         >
           Edit Profile

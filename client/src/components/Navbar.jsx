@@ -133,7 +133,7 @@ const Navbar = () => {
               {/* Dropdown Menu */}
               {profileOpen && (
                 <div className="absolute right-0 top-full mt-2 w-48 p-2 bg-[#111] border border-[#2a2a2a] rounded-md shadow-xl z-[100]">
-                  <a href="/profile" className="block w-full text-left px-3 py-2 text-sm text-[#ccc] hover:bg-[#181818] hover:text-[#f0f0f0] rounded-sm transition-colors">
+                  <a href={`/users/${currentUser?.username}`} className="block w-full text-left px-3 py-2 text-sm text-[#ccc] hover:bg-[#181818] hover:text-[#f0f0f0] rounded-sm transition-colors">
                     View Account
                   </a>
                   <a href="/settings" className="block w-full text-left px-3 py-2 text-sm text-[#ccc] hover:bg-[#181818] hover:text-[#f0f0f0] rounded-sm transition-colors">
@@ -249,7 +249,7 @@ const Navbar = () => {
                     <p className="text-[#666] text-xs">@{currentUser?.username}</p>
                   </div>
                 </div>
-                <a href="/profile" className="w-full text-center border border-[#333] text-[#f0f0f0] px-4 py-3 text-sm rounded-sm hover:bg-[#181818]">
+                <a href={`/users/${currentUser?.username}`} className="w-full text-center border border-[#333] text-[#f0f0f0] px-4 py-3 text-sm rounded-sm hover:bg-[#181818]">
                   View Account
                 </a>
                 <button onClick={handleLogout} className="w-full bg-red-500/10 text-red-400 border border-red-500/20 font-semibold px-4 py-3 text-sm rounded-sm hover:bg-red-500/20">

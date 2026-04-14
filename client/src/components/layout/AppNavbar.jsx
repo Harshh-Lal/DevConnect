@@ -15,7 +15,7 @@ export default function AppNavbar() {
   const navLinks = [
     { name: 'Home', to: '/home' },
     { name: 'Explore', to: '/explore' },
-    { name: 'Profile', to: '/profile' },
+    { name: 'Profile', to: `/users/${currentUser?.username}` },
   ];
 
   return (
@@ -98,7 +98,7 @@ export default function AppNavbar() {
                       </p>
                     </div>
                     <Link
-                      to="/profile"
+                      to={`/users/${currentUser?.username}`}
                       className="flex items-center gap-2 px-4 py-2 text-sm text-[#888888] hover:bg-[#222222] hover:text-[#ffffff]"
                       onClick={() => setIsProfileOpen(false)}
                     >

@@ -20,6 +20,11 @@ model User {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // --- NEW PROFILE FIELDS ---
+  bio         String?
+  avatarUrl   String?
+  githubUrl   String?
+
   // --- NEW: Relationships to Content ---
   posts    Post[]
   comments Comment[]

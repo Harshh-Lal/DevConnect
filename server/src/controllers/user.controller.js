@@ -37,3 +37,25 @@ export const getUserProfile = async (req, res) => {
         res.status(500).json({ message: "Failed to fetch profile." });
     }
 };
+
+export const updateProfile = async (req, res) => {
+    try {
+        const userId = req.user.userId; // Securely pulled from their JWT token
+        const { displayName, bio, avatarUrl, githubUrl } = req.body;
+
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: {
+                displayName,
+                bio,
+                avatarUrl,
+                githubUrl
+            }
+        });
+
+        res.status(200).json({ message: "Profile updated successfully!", user: updatedUser });
+    } catch (error) {
+        console.error("ERROR UPDATING PROFILE:", error);
+        res.status(500).json({ message: "Failed to update profile." });
+    }
+};
