@@ -24,24 +24,9 @@ export const AuthProvider = ({ children }) => {
       setCurrentUser(response.data.user || response.data);
     } catch (error) {
       console.error('Failed to fetch user', error);
-      // Fallback for UI building if backend is totally absent
-      if (import.meta.env.DEV) {
-        console.warn('Backend missing or failed, using mock user for UI testing');
-        setCurrentUser({
-          id: 'mock-123',
-          username: 'mockdeveloper',
-          displayName: 'Mock Developer',
-          email: 'mock@example.com',
-          avatarUrl: '',
-          bio: 'Building awesome web apps. React and Node.js enthusiast. Never stop learning.',
-          followersCount: 42,
-          followingCount: 15,
-          skills: ['React', 'Node.js', 'TailwindCSS'],
-        });
-      } else {
-        setCurrentUser(null);
-        localStorage.removeItem('token');
-      }
+      // STRICT LOGOUT ON ERROR:
+      setCurrentUser(null);
+      localStorage.removeItem('token');
     } finally {
       setIsLoading(false);
     }

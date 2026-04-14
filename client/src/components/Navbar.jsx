@@ -4,6 +4,7 @@ import { useScroll } from './ui/use-scroll'
 import { MenuToggleIcon } from './ui/menu-toggle-icon'
 import AuthModal from './AuthModal'
 import { AuthView } from './ui/auth-form'
+import { useAuth } from '../context/AuthContext'
 
 const navLinks = [
   { label: 'Features', href: '#features' },
@@ -18,17 +19,10 @@ const Navbar = () => {
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [authInitialView, setAuthInitialView] = useState(AuthView.SIGN_IN)
 
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const { currentUser, isAuthenticated, logout } = useAuth()
 
   const [profileOpen, setProfileOpen] = useState(false)
   const profileDropdownRef = useRef(null)
-
-  useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (token) {
-      setIsLoggedIn(true)
-    }
-  }, [])
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -45,9 +39,7 @@ const Navbar = () => {
   }, [])
 
   const handleLogout = () => {
-    localStorage.removeItem('token')
-    setIsLoggedIn(false)
-    window.location.href = '/' // Kick them back to landing page
+    logout() // delegates to AuthContext which clears token + redirects
   }
 
   const openAuth = (view) => {
@@ -117,21 +109,27 @@ const Navbar = () => {
 
         {/* ── Desktop action buttons ── */}
         <div className="hidden md:flex items-center gap-2">
-          {isLoggedIn ? (
+          {isAuthenticated ? (
             /* ── STATE: LOGGED IN ── */
             <div className="relative cursor-pointer" ref={profileDropdownRef}>
-              {/* Profile Picture */}
+              {/* Profile Avatar */}
               <button 
                 onClick={() => setProfileOpen(!profileOpen)}
                 className="flex items-center justify-center rounded-full outline-none focus:ring-2 focus:ring-[#f5a623]"
               >
-                <img 
-                  src="https://github.com/shadcn.png" // Placeholder image
-                  alt="Profile" 
-                  className="w-8 h-8 rounded-full border border-[#333] hover:border-[#666] transition-colors"
-                />
+                {currentUser?.avatarUrl ? (
+                  <img 
+                    src={currentUser.avatarUrl}
+                    alt={currentUser.displayName || 'Profile'} 
+                    className="w-8 h-8 rounded-full border border-[#333] hover:border-[#666] transition-colors"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full border border-[#333] hover:border-[#666] transition-colors bg-[#222] flex items-center justify-center text-sm font-semibold text-[#f5a623]">
+                    {(currentUser?.displayName || currentUser?.username || 'U').charAt(0).toUpperCase()}
+                  </div>
+                )}
               </button>
-              
+
               {/* Dropdown Menu */}
               {profileOpen && (
                 <div className="absolute right-0 top-full mt-2 w-48 p-2 bg-[#111] border border-[#2a2a2a] rounded-md shadow-xl z-[100]">
@@ -235,12 +233,21 @@ const Navbar = () => {
 
           {/* Bottom action buttons */}
           <div className="flex flex-col gap-3 pb-4">
-            {isLoggedIn ? (
+            {isAuthenticated ? (
               /* ── STATE: LOGGED IN (MOBILE) ── */
               <>
                 <div className="flex items-center gap-3 mb-4 px-2">
-                  <img src="https://github.com/shadcn.png" alt="Profile" className="w-10 h-10 rounded-full border border-[#333]" />
-                  <span className="text-[#f0f0f0] font-medium">My Account</span>
+                  {currentUser?.avatarUrl ? (
+                    <img src={currentUser.avatarUrl} alt="Profile" className="w-10 h-10 rounded-full border border-[#333]" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full border border-[#333] bg-[#222] flex items-center justify-center text-sm font-semibold text-[#f5a623]">
+                      {(currentUser?.displayName || currentUser?.username || 'U').charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-[#f0f0f0] font-medium text-sm">{currentUser?.displayName || currentUser?.username}</p>
+                    <p className="text-[#666] text-xs">@{currentUser?.username}</p>
+                  </div>
                 </div>
                 <a href="/profile" className="w-full text-center border border-[#333] text-[#f0f0f0] px-4 py-3 text-sm rounded-sm hover:bg-[#181818]">
                   View Account

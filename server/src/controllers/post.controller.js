@@ -4,38 +4,41 @@ export const createPost = async (req, res) => {
     try {
         const { title, description, githubUrl, liveUrl, tags } = req.body;
         
-        // Your verifyToken middleware decoded the JWT and attached it to req.user.
-        // We grab the userId so the database knows who wrote this!
         const userId = req.user.userId; 
 
         if (!title || !description) {
             return res.status(400).json({ message: "Title and description are required." });
         }
 
-        const newPost = await prisma.post.create({
+        // Step 1: Create the post
+        const created = await prisma.post.create({
             data: {
                 title,
                 description,
-                githubUrl,
-                liveUrl,
-                tags: tags || [], 
+                ...(githubUrl ? { githubUrl } : {}),
+                ...(liveUrl ? { liveUrl } : {}),
+                tags: Array.isArray(tags) ? tags : [],
                 authorId: userId,
             },
-            // Include the author data so your React frontend can display their username!
+        });
+
+        // Step 2: Fetch it back with relations (avoids adapter include-on-create issues)
+        const newPost = await prisma.post.findUnique({
+            where: { id: created.id },
             include: {
-                author: {
-                    select: { username: true } 
-                }
-            }
+                author: { select: { username: true, displayName: true } },
+                _count: { select: { comments: true, likes: true } },
+            },
         });
 
         res.status(201).json({ 
             message: "Project posted successfully!", 
-            post: newPost 
+            post: newPost,
         });
     } catch (error) {
-        console.error("ERROR CREATING POST:", error);
-        res.status(500).json({ message: "Failed to create post." });
+        console.error("ERROR CREATING POST:", error.message);
+        console.error("Full error:", JSON.stringify(error, null, 2));
+        res.status(500).json({ message: "Failed to create post.", detail: error.message });
     }
 };
 
@@ -50,7 +53,7 @@ export const getFeed = async (req, res) => {
             take: take,
             orderBy: { createdAt: 'desc' },
             include: {
-                author: { select: { username: true } },
+                author: { select: { username: true, displayName: true } },
                 _count: { select: { comments: true, likes: true } }
             }
         };
@@ -76,5 +79,35 @@ export const getFeed = async (req, res) => {
     } catch (error) {
         console.error("ERROR FETCHING FEED:", error);
         res.status(500).json({ message: "Failed to fetch feed." });
+    }
+};
+
+// ─── GET EXPLORE POSTS (For You / All posts) ─────────
+export const getExploreFeed = async (req, res) => {
+    try {
+        const { cursor, limit = 5 } = req.query;
+        const take = Number(limit);
+
+        const query = {
+            take,
+            orderBy: { createdAt: 'desc' },
+            include: {
+                author: { select: { username: true, displayName: true } },
+                _count: { select: { comments: true, likes: true } }
+            }
+        };
+
+        if (cursor) {
+            query.cursor = { id: cursor };
+            query.skip = 1;
+        }
+
+        const posts = await prisma.post.findMany(query);
+        const nextId = posts.length === take ? posts[take - 1].id : null;
+
+        res.status(200).json({ posts, nextCursor: nextId });
+    } catch (error) {
+        console.error("ERROR FETCHING EXPLORE FEED:", error);
+        res.status(500).json({ message: "Failed to fetch explore feed." });
     }
 };

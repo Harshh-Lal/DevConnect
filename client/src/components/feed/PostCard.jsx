@@ -30,8 +30,8 @@ export default function PostCard({ post, currentUser, onPostDeleted }) {
   const postDescription = post.description || post.content || '';
   
   const [isLiked, setIsLiked] = useState(post.isLikedByMe || false);
-  const [likeCount, setLikeCount] = useState(post.likesCount || 0);
-  const [commentCount, setCommentCount] = useState(post.commentsCount || 0);
+  const [likeCount, setLikeCount] = useState(post._count?.likes ?? post.likesCount ?? 0);
+  const [commentCount, setCommentCount] = useState(post._count?.comments ?? post.commentsCount ?? 0);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 

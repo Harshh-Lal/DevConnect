@@ -4,15 +4,17 @@ import jwt from 'jsonwebtoken';
 
 export const register = async (req, res) => {
     try {
-        const { username, email, password } = req.body;
+        const { username, displayName, email, password } = req.body;
 
         if (!username || !email || !password) {
             return res.status(400).json({ message: "All fields are required." });
         }
 
+        const safeUsername = username.toLowerCase().replace(/\s+/g, '');
+
         const existingUser = await prisma.user.findFirst({
             where: {
-                OR: [{ email }, { username }],
+                OR: [{ email }, { username: safeUsername }],
             },
         });
 
@@ -25,17 +27,25 @@ export const register = async (req, res) => {
 
         const newUser = await prisma.user.create({
             data: {
-                username,
+                username: safeUsername,
+                displayName: displayName || safeUsername,
                 email,
                 password: hashedPassword,
             }
         });
 
+        const payload = { userId: newUser.id };
+        const token = jwt.sign(payload, process.env.JWT_SECRET, {
+            expiresIn: '7d',
+        });
+
         res.status(201).json({
             message: 'User registered successfully!',
+            token,
             user: {
                 id: newUser.id,
                 username: newUser.username,
+                displayName: newUser.displayName,
                 email: newUser.email,
             },
         });
@@ -75,10 +85,11 @@ export const login = async (req, res) => {
 
         res.status(200).json({
             message: 'Login successful!',
-            token, // <-- This is the golden ticket
+            token,
             user: {
                 id: user.id,
                 username: user.username,
+                displayName: user.displayName,
                 email: user.email,
             },
         });
@@ -97,6 +108,7 @@ export const getMe = async (req, res) => {
             select: {
                 id: true,
                 username: true,
+                displayName: true,
                 email: true,
                 createdAt: true,
             },

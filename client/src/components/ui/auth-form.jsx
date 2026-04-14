@@ -12,6 +12,7 @@ import { Checkbox } from './checkbox'
 import { cn } from '../../lib/utils'
 import { api } from '../../lib/api';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 // ─── View constants ───────────────────────────────────────
 const AuthView = {
@@ -28,7 +29,15 @@ const signInSchema = z.object({
 })
 
 const signUpSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
+  // Allows spaces, capitals, etc. (e.g., "Harsh Lal")
+  displayName: z.string().min(2, 'Name must be at least 2 characters'),
+  
+  // Strictly enforces lowercase, numbers, and underscores (e.g., "harsh_lal")
+  username: z.string()
+    .min(3, 'Username must be at least 3 characters')
+    .max(20, 'Username cannot exceed 20 characters')
+    .regex(/^[a-z0-9_]+$/, 'Only lowercase letters, numbers, and underscores allowed'),
+    
   email: z.string().email('Invalid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   terms: z.boolean().refine((v) => v === true, {
@@ -130,6 +139,7 @@ function AuthSignIn({ onForgotPassword, onSignUp }) {
   const [showPassword, setShowPassword] = React.useState(false)
 
   const navigate = useNavigate();
+  const { setCurrentUser } = useAuth();
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(signInSchema),
@@ -146,7 +156,7 @@ function AuthSignIn({ onForgotPassword, onSignUp }) {
       })
 
       localStorage.setItem('token', response.data.token)
-
+      setCurrentUser(response.data.user)
       navigate('/home');
 
       console.log('Logged in successfully as:', response.data.user.username)
@@ -254,10 +264,11 @@ function AuthSignUp({ onSignIn }) {
   const [showPassword, setShowPassword] = React.useState(false)
 
   const navigate = useNavigate();
+  const { setCurrentUser } = useAuth();
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm({
     resolver: zodResolver(signUpSchema),
-    defaultValues: { name: '', email: '', password: '', terms: false },
+    defaultValues: { displayName: '', username: '', email: '', password: '', terms: false },
   })
 
   const termsChecked = watch('terms')
@@ -267,13 +278,15 @@ function AuthSignUp({ onSignIn }) {
     setError(null)
     try {
       const response = await api.post('/auth/register', { 
-        username: data.name, 
+        displayName: data.displayName,
+        username: data.username, 
         email: data.email, 
         password: data.password 
       })
       console.log('Registration successful!', response.data)
       
       localStorage.setItem('token', response.data.token)
+      setCurrentUser(response.data.user)
       
       navigate('/home');
     } catch (err){
@@ -302,16 +315,35 @@ function AuthSignUp({ onSignIn }) {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Name */}
         <div className="space-y-1.5">
-          <Label htmlFor="signup-name">Full name</Label>
+          <Label htmlFor="signup-displayname">Full name</Label>
           <Input
-            id="signup-name"
+            id="signup-displayname"
             type="text"
             placeholder="Alex Johnson"
             disabled={isLoading}
-            className={cn(errors.name && 'border-red-500/70')}
-            {...register('name')}
+            className={cn(errors.displayName && 'border-red-500/70')}
+            {...register('displayName')}
           />
-          {errors.name && <p className="text-xs text-red-400">{errors.name.message}</p>}
+          {errors.displayName && <p className="text-xs text-red-400">{errors.displayName.message}</p>}
+        </div>
+
+        {/* Username */}
+        <div className="space-y-1.5">
+          <Label htmlFor="signup-username">Username</Label>
+          <Input
+            id="signup-username"
+            type="text"
+            placeholder="harsh_lal"
+            disabled={isLoading}
+            className={cn(errors.username && 'border-red-500/70')}
+            {...register('username', {
+              onChange: (e) => {
+                // Auto-format to lowercase and remove spaces!
+                e.target.value = e.target.value.toLowerCase().replace(/\s+/g, '')
+              }
+            })}
+          />
+          {errors.username && <p className="text-xs text-red-400">{errors.username.message}</p>}
         </div>
 
         {/* Email */}

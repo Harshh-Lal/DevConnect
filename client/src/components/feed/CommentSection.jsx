@@ -22,8 +22,8 @@ export default function CommentSection({ postId, setCommentCount }) {
               id: 'c1',
               content: 'Wow, this looks absolutely incredible!',
               createdAt: new Date(Date.now() - 3600000).toISOString(),
-              userId: 'user2',
-              user: { displayName: 'Alice Lee', username: 'alicelee', avatarUrl: null }
+              authorId: 'user2',
+              author: { displayName: 'Alice Lee', username: 'alicelee', avatarUrl: null }
             }
           ]);
           setIsLoading(false);
@@ -56,8 +56,8 @@ export default function CommentSection({ postId, setCommentCount }) {
           id: Math.random().toString(36).substring(7),
           ...commentPayload,
           createdAt: new Date().toISOString(),
-          userId: currentUser.id,
-          user: {
+          authorId: currentUser.id,
+          author: {
             displayName: currentUser.displayName,
             username: currentUser.username,
             avatarUrl: currentUser.avatarUrl
@@ -117,19 +117,23 @@ export default function CommentSection({ postId, setCommentCount }) {
           {comments.length === 0 ? (
             <p className="text-center text-[13px] text-[#555555] py-2">No comments yet. Be the first!</p>
           ) : (
-            comments.map((comment) => (
+            comments.map((comment) => {
+            // Support both API shape (author/authorId) and legacy mock shape (user/userId)
+            const commentAuthor = comment.author || comment.user || {};
+            const commentOwnerId = comment.authorId || comment.userId;
+            return (
               <div key={comment.id} className="group flex gap-3 relative">
-                {comment.user.avatarUrl ? (
-                  <img src={comment.user.avatarUrl} alt="Avatar" className="h-[32px] w-[32px] rounded-full object-cover shrink-0" />
+                {commentAuthor.avatarUrl ? (
+                  <img src={commentAuthor.avatarUrl} alt="Avatar" className="h-[32px] w-[32px] rounded-full object-cover shrink-0" />
                 ) : (
                   <div className="flex h-[32px] w-[32px] items-center justify-center rounded-full bg-[#181818] border border-[#2a2a2a] text-xs font-semibold text-[#f5a623] shrink-0">
-                    {getInitials(comment.user.displayName || comment.user.username)}
+                    {getInitials(commentAuthor.displayName || commentAuthor.username)}
                   </div>
                 )}
                 
                 <div className="flex-1 flex flex-col justify-start min-w-0 pr-8">
                   <div className="flex items-baseline gap-2 mb-0.5">
-                    <span className="font-medium text-[13px] text-[#cccccc] truncate">{comment.user.displayName || comment.user.username}</span>
+                    <span className="font-medium text-[13px] text-[#cccccc] truncate">{commentAuthor.displayName || commentAuthor.username}</span>
                     <span className="text-[11px] text-[#555555] shrink-0">
                       {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
                     </span>
@@ -137,7 +141,7 @@ export default function CommentSection({ postId, setCommentCount }) {
                   <p className="text-[13px] text-[#999999] whitespace-pre-wrap break-words">{comment.content}</p>
                 </div>
 
-                {currentUser && comment.userId === currentUser.id && (
+                {currentUser && commentOwnerId === currentUser.id && (
                   <button 
                     onClick={() => handleDeleteComment(comment.id)}
                     className="absolute top-0 right-0 p-1 text-[#444444] opacity-0 group-hover:opacity-100 transition-opacity hover:text-[#ef4444] rounded"
@@ -147,7 +151,8 @@ export default function CommentSection({ postId, setCommentCount }) {
                   </button>
                 )}
               </div>
-            ))
+            );
+          })
           )}
         </div>
       )}

@@ -12,12 +12,13 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid()) //This generates a long, secure, collision-resistant string (e.g., clq5z...), instead of ids 1, 2 ,3, ....
-  email     String   @unique
-  password  String
-  username  String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid()) //This generates a long, secure, collision-resistant string (e.g., clq5z...), instead of ids 1, 2 ,3, ....
+  email       String   @unique
+  password    String
+  username    String   @unique
+  displayName String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // --- NEW: Relationships to Content ---
   posts    Post[]
