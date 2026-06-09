@@ -1,9 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 
 export default function ProfileSnapshot() {
-  const { currentUser } = useAuth();
+  const { currentUser, refreshUser } = useAuth();
+
+  // Re-fetch current user on mount so follower/following counts are always live
+  useEffect(() => {
+    refreshUser();
+  }, []);
 
   if (!currentUser) return null;
 
@@ -42,13 +47,13 @@ export default function ProfileSnapshot() {
           <div className="text-center">
             <p className="text-[11px] text-[#888888] mb-0.5">Followers</p>
             <p className="text-[15px] font-semibold text-[#ffffff]">
-              {currentUser.followersCount || 0}
+              {currentUser.followersCount ?? 0}
             </p>
           </div>
           <div className="text-center">
             <p className="text-[11px] text-[#888888] mb-0.5">Following</p>
             <p className="text-[15px] font-semibold text-[#ffffff]">
-              {currentUser.followingCount || 0}
+              {currentUser.followingCount ?? 0}
             </p>
           </div>
         </div>

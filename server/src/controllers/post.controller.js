@@ -1,10 +1,45 @@
 import prisma from '../utils/prisma.js';
 
+export const toggleLike = async (req, res) => {
+    try {
+        const { postId } = req.params;
+        const userId = req.user.userId; // Pulled securely from the JWT token
+
+        // 1. Check if the like already exists
+        const existingLike = await prisma.like.findFirst({
+            where: {
+                postId: postId,
+                userId: userId,
+            }
+        });
+
+        if (existingLike) {
+            // 2. If it exists, they are "unliking" the post
+            await prisma.like.delete({
+                where: { id: existingLike.id }
+            });
+            return res.status(200).json({ message: "Post unliked", isLiked: false });
+        } else {
+            // 3. If it doesn't exist, they are "liking" the post
+            await prisma.like.create({
+                data: {
+                    postId: postId,
+                    userId: userId,
+                }
+            });
+            return res.status(200).json({ message: "Post liked", isLiked: true });
+        }
+    } catch (error) {
+        console.error("ERROR TOGGLING LIKE:", error);
+        res.status(500).json({ message: "Failed to toggle like." });
+    }
+};
+
 export const createPost = async (req, res) => {
     try {
         const { title, description, githubUrl, liveUrl, tags } = req.body;
-        
-        const userId = req.user.userId; 
+
+        const userId = req.user.userId;
 
         if (!title || !description) {
             return res.status(400).json({ message: "Title and description are required." });
@@ -22,17 +57,18 @@ export const createPost = async (req, res) => {
             },
         });
 
-        // Step 2: Fetch it back with relations (avoids adapter include-on-create issues)
+        // Step 2: Fetch it back with relations
         const newPost = await prisma.post.findUnique({
             where: { id: created.id },
             include: {
-                author: { select: { username: true, displayName: true } },
+                author: { select: { username: true, displayName: true, avatarUrl: true } },
                 _count: { select: { comments: true, likes: true } },
+                likes: { select: { userId: true } } // <-- ADDED THIS!
             },
         });
 
-        res.status(201).json({ 
-            message: "Project posted successfully!", 
+        res.status(201).json({
+            message: "Project posted successfully!",
             post: newPost,
         });
     } catch (error) {
@@ -45,35 +81,30 @@ export const createPost = async (req, res) => {
 // ─── GET ALL POSTS (THE TIMELINE) ───────────────────────
 export const getFeed = async (req, res) => {
     try {
-        // Look for a cursor and a limit in the URL query (?cursor=abc&limit=10)
-        const { cursor, limit = 5 } = req.query; 
+        const { cursor, limit = 5 } = req.query;
         const take = Number(limit);
 
         const query = {
             take: take,
             orderBy: { createdAt: 'desc' },
             include: {
-                author: { select: { username: true, displayName: true } },
-                _count: { select: { comments: true, likes: true } }
+                author: { select: { username: true, displayName: true, avatarUrl: true } },
+                _count: { select: { comments: true, likes: true } },
+                likes: { select: { userId: true } } // <-- ADDED THIS!
             }
         };
 
-        // If the frontend sent a cursor, tell Prisma to start searching AFTER that specific post
         if (cursor) {
             query.cursor = { id: cursor };
-            query.skip = 1; // Skip the cursor itself so we don't send a duplicate post!
+            query.skip = 1; 
         }
 
         const posts = await prisma.post.findMany(query);
-
-        // Figure out the NEXT cursor to give to the frontend
-        // If we got exactly the number of posts we asked for, there are probably more!
         const nextId = posts.length === take ? posts[take - 1].id : null;
 
-        // Send back the chunk of posts AND the cursor for the next batch
-        res.status(200).json({ 
-            posts: posts, 
-            nextCursor: nextId 
+        res.status(200).json({
+            posts: posts,
+            nextCursor: nextId
         });
 
     } catch (error) {
@@ -92,8 +123,9 @@ export const getExploreFeed = async (req, res) => {
             take,
             orderBy: { createdAt: 'desc' },
             include: {
-                author: { select: { username: true, displayName: true } },
-                _count: { select: { comments: true, likes: true } }
+                author: { select: { username: true, displayName: true, avatarUrl: true } },
+                _count: { select: { comments: true, likes: true } },
+                likes: { select: { userId: true } } // <-- ADDED THIS!
             }
         };
 

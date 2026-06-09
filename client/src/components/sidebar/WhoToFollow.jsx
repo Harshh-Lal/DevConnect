@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axiosInstance from '../../lib/axios';
+import { useAuth } from '../../context/AuthContext';
 import { Loader2 } from 'lucide-react';
 
 export default function WhoToFollow() {
@@ -10,19 +11,8 @@ export default function WhoToFollow() {
   useEffect(() => {
     const fetchSuggestions = async () => {
       try {
-        if (import.meta.env.DEV) {
-          await new Promise(resolve => setTimeout(resolve, 800));
-          setUsers([
-            { id: '1', username: 'janesmith', displayName: 'Jane Smith', skills: ['Python', 'Django'] },
-            { id: '2', username: 'bobd', displayName: 'Bob Developer', skills: ['React', 'Next.js'] },
-            { id: '3', username: 'alicelee', displayName: 'Alice Lee', skills: ['Go', 'Docker'] },
-          ]);
-          setIsLoading(false);
-          return;
-        }
-
         const response = await axiosInstance.get('/users/suggestions');
-        setUsers(response.data.users || response.data);
+        setUsers(response.data.data || response.data.users || response.data);
       } catch (error) {
         console.error('Failed to fetch user suggestions', error);
       } finally {
@@ -82,7 +72,8 @@ export default function WhoToFollow() {
 
 function UserSuggestionCard({ user }) {
   const [isFollowing, setIsFollowing] = useState(false);
-  const [isLiking, setIsLiking] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { refreshUser } = useAuth();
 
   const getInitials = (name) => {
     if (!name) return 'U';
@@ -90,26 +81,24 @@ function UserSuggestionCard({ user }) {
   };
 
   const handleFollow = async () => {
-    if (isLiking) return;
-    
-    setIsLiking(true);
+    if (isLoading) return;
+
+    setIsLoading(true);
     const prevFollowing = isFollowing;
-    setIsFollowing(!isFollowing);
+    setIsFollowing(!isFollowing); // optimistic update
 
     try {
-      if (import.meta.env.DEV) {
-        await new Promise(resolve => setTimeout(resolve, 300));
-        return;
-      }
       if (!prevFollowing) {
         await axiosInstance.post(`/users/${user.id}/follow`);
       } else {
         await axiosInstance.delete(`/users/${user.id}/follow`);
       }
+      // Refresh the current user's counts in the ProfileSnapshot sidebar
+      await refreshUser();
     } catch (error) {
-      setIsFollowing(prevFollowing);
+      setIsFollowing(prevFollowing); // revert on error
     } finally {
-      setIsLiking(false);
+      setIsLoading(false);
     }
   };
 
@@ -136,29 +125,19 @@ function UserSuggestionCard({ user }) {
           <Link to={`/users/${user.username}`} className="truncate text-[12px] text-[#666666] block hover:text-[#888888] transition-colors">
             @{user.username}
           </Link>
-          
-          {user.skills && user.skills.length > 0 && (
-            <div className="mt-[4px] flex gap-1.5 overflow-hidden">
-              {user.skills.slice(0, 2).map((skill) => (
-                <span key={skill} className="truncate rounded border border-[#2a2a2a] bg-[#1a1a1a] px-1.5 py-[1px] text-[10px] text-[#888888]">
-                  {skill}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
       </div>
 
       <button
         onClick={handleFollow}
-        disabled={isLiking}
-        className={`flex-shrink-0 rounded-full px-4 py-1 flex items-center justify-center text-[13px] transition-colors min-w-[80px] ${
+        disabled={isLoading}
+        className={`flex-shrink-0 rounded-full px-4 py-1 flex items-center justify-center text-[13px] transition-colors min-w-[80px] cursor-pointer disabled:opacity-60 ${
           isFollowing
             ? 'bg-[rgba(245,166,35,0.1)] border border-[#f5a623] text-[#f5a623]'
             : 'bg-transparent border border-[#2a2a2a] text-[#ffffff] hover:border-[#f5a623] hover:text-[#f5a623]'
         }`}
       >
-        {isLiking ? (
+        {isLoading ? (
           <Loader2 className="w-3.5 h-3.5 animate-spin" />
         ) : isFollowing ? 'Following' : 'Follow'}
       </button>

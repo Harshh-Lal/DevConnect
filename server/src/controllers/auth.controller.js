@@ -110,7 +110,16 @@ export const getMe = async (req, res) => {
                 username: true,
                 displayName: true,
                 email: true,
+                bio: true,
+                avatarUrl: true,
+                githubUrl: true,
                 createdAt: true,
+                _count: {
+                    select: {
+                        followers: true,
+                        following: true,
+                    },
+                },
             },
         });
 
@@ -118,7 +127,13 @@ export const getMe = async (req, res) => {
             return res.status(404).json({ message: "User not found." })
         }
 
-        res.status(200).json(user);
+        // Flatten counts onto the user object for easy access on the frontend
+        const { _count, ...rest } = user;
+        res.status(200).json({
+            ...rest,
+            followersCount: _count.followers,
+            followingCount: _count.following,
+        });
     } catch (error) {
         console.error('Get Me Error:', error);
         res.status(500).json({ message: 'Internal server error.' });

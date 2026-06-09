@@ -48,6 +48,7 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: !!currentUser,
     isLoading,
     logout,
+    refreshUser: fetchUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

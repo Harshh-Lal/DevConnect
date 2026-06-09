@@ -24,16 +24,17 @@ export default function PostCard({ post, currentUser, onPostDeleted }) {
   const postOwner = post.author || post.user || { username: 'Unknown' };
   const ownerId = post.authorId || post.userId;
 
-  const initialLikes = post._count?.likes || post.likesCount || 0;
+  const initialIsLiked = post.likes?.some(like => like.userId === currentUser?.id) || false;
   const initialComments = post._count?.comments || post.commentsCount || 0;
 
   const postDescription = post.description || post.content || '';
-  
-  const [isLiked, setIsLiked] = useState(post.isLikedByMe || false);
+
+  const [isLiked, setIsLiked] = useState(initialIsLiked);
   const [likeCount, setLikeCount] = useState(post._count?.likes ?? post.likesCount ?? 0);
   const [commentCount, setCommentCount] = useState(post._count?.comments ?? post.commentsCount ?? 0);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isLiking, setIsLiking] = useState(false);
 
   const getInitials = (name) => {
     if (!name) return 'U';
@@ -41,38 +42,26 @@ export default function PostCard({ post, currentUser, onPostDeleted }) {
   };
 
   const handleToggleLike = async () => {
-    const previousIsLiked = isLiked;
-    const previousCount = likeCount;
+    if (isLiking) return;
 
     setIsLiked(!isLiked);
-    setLikeCount(isLiked ? likeCount - 1 : likeCount + 1);
+    setLikeCount(prev => isLiked ? prev - 1 : prev + 1);
+    setIsLiking(true);
 
     try {
-      if (import.meta.env.DEV) {
-        await new Promise(resolve => setTimeout(resolve, 300));
-        return;
-      }
-      if (!previousIsLiked) {
-        await axiosInstance.post(`/posts/${post.id}/like`);
-      } else {
-        await axiosInstance.delete(`/posts/${post.id}/like`);
-      }
+      await axiosInstance.post(`/posts/${post.id}/like`);
     } catch (error) {
-      setIsLiked(previousIsLiked);
-      setLikeCount(previousCount);
+      setIsLiked(isLiked);
+      setLikeCount(post._count?.likes ?? post.likesCount ?? 0);
       toast.error('Failed to update like status');
+    } finally {
+      setIsLiking(false);
     }
   };
 
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      if (import.meta.env.DEV) {
-        await new Promise(resolve => setTimeout(resolve, 600));
-        toast.success('Post deleted');
-        onPostDeleted(post.id);
-        return;
-      }
       await axiosInstance.delete(`/posts/${post.id}`);
       toast.success('Post deleted');
       onPostDeleted(post.id);
@@ -87,7 +76,7 @@ export default function PostCard({ post, currentUser, onPostDeleted }) {
 
   return (
     <div className="rounded-xl border border-[#2a2a2a] bg-[#111111] p-5 transition-colors hover:bg-[#141414] hover:border-[#333333]">
-      
+
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
@@ -106,7 +95,7 @@ export default function PostCard({ post, currentUser, onPostDeleted }) {
                 {postOwner.displayName || postOwner.username}
               </Link>
               <span className="text-[13px] text-[#666666]">@{postOwner.username}</span>
-              <span className="text-[12px] text-[#555555]">· {post.createdAt ?formatDistanceToNow(new Date(post.createdAt), { addSuffix: true }) : 'Just Now'}</span>
+              <span className="text-[12px] text-[#555555]">· {post.createdAt ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true }) : 'Just Now'}</span>
             </div>
           </div>
         </div>
@@ -117,14 +106,14 @@ export default function PostCard({ post, currentUser, onPostDeleted }) {
             {showDeleteConfirm ? (
               <div className="absolute right-0 top-0 flex items-center gap-2 rounded-md bg-[#181818] border border-[#2a2a2a] p-1 shadow-md whitespace-nowrap">
                 <span className="pl-2 text-xs text-[#888888]">Delete post?</span>
-                <button 
+                <button
                   onClick={handleDelete}
                   disabled={isDeleting}
                   className="rounded px-2 py-1 text-xs font-semibold text-[#ef4444] hover:bg-[#ef4444]/10 transition-colors"
                 >
                   Yes
                 </button>
-                <button 
+                <button
                   onClick={() => setShowDeleteConfirm(false)}
                   disabled={isDeleting}
                   className="rounded px-2 py-1 text-xs font-semibold text-[#888888] hover:text-[#ffffff] transition-colors"
@@ -133,7 +122,7 @@ export default function PostCard({ post, currentUser, onPostDeleted }) {
                 </button>
               </div>
             ) : (
-              <button 
+              <button
                 onClick={() => setShowDeleteConfirm(true)}
                 className="text-[#555555] hover:text-[#ffffff] transition-colors p-1"
                 aria-label="Delete post"
@@ -149,12 +138,12 @@ export default function PostCard({ post, currentUser, onPostDeleted }) {
       <div className="mt-4">
         {post.title && <h2 className="text-[16px] font-semibold text-[#ffffff] mb-[6px]">{post.title}</h2>}
         <div className="text-[#aaaaaa] text-[14px] whitespace-pre-wrap leading-[1.6]">
-          {isExpanded || !hasLongDescription 
-            ? postDescription 
+          {isExpanded || !hasLongDescription
+            ? postDescription
             : `${postDescription.substring(0, 150)}...`}
-          
+
           {hasLongDescription && (
-            <span 
+            <span
               onClick={() => setIsExpanded(!isExpanded)}
               className="ml-2 text-[13px] text-[#f5a623] cursor-pointer hover:underline"
             >
@@ -184,9 +173,9 @@ export default function PostCard({ post, currentUser, onPostDeleted }) {
       {(post.githubUrl || post.liveUrl) && (
         <div className="mt-4 flex flex-wrap gap-3">
           {post.githubUrl && (
-            <a 
-              href={post.githubUrl} 
-              target="_blank" 
+            <a
+              href={post.githubUrl}
+              target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 rounded bg-transparent border border-[#2a2a2a] px-3 py-1.5 text-sm font-medium text-[#555555] hover:text-[#ffffff] hover:border-[#3a3a3a] transition-colors"
             >
@@ -195,9 +184,9 @@ export default function PostCard({ post, currentUser, onPostDeleted }) {
             </a>
           )}
           {post.liveUrl && (
-            <a 
-              href={post.liveUrl} 
-              target="_blank" 
+            <a
+              href={post.liveUrl}
+              target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 rounded bg-transparent border border-[#2a2a2a] px-3 py-1.5 text-sm font-medium text-[#555555] hover:text-[#ffffff] hover:border-[#3a3a3a] transition-colors"
             >
@@ -211,25 +200,24 @@ export default function PostCard({ post, currentUser, onPostDeleted }) {
       {/* Actions Row */}
       <div className="mt-5 border-t border-[#1f1f1f] pt-4">
         <div className="flex gap-6">
-          <button 
+          <button
             onClick={handleToggleLike}
-            className={`flex items-center gap-1.5 transition-colors group ${
-              isLiked 
-                ? 'text-[#ef4444]' 
+            disabled={isLiking}
+            className={`flex items-center gap-1.5 transition-colors group ${isLiked
+                ? 'text-[#ef4444]'
                 : 'text-[#666666] hover:text-[#ef4444]'
-            }`}
+              }`}
           >
             <Heart className={`h-5 w-5 ${isLiked ? 'fill-current' : ''}`} />
             <span className={`text-[13px] font-medium ${isLiked ? 'text-[#ef4444]' : 'text-[#888888] group-hover:text-[#ef4444]'}`}>
               {likeCount}
             </span>
           </button>
-          
-          <button 
+
+          <button
             onClick={() => setShowComments(!showComments)}
-            className={`flex items-center gap-1.5 transition-colors group ${
-              showComments ? 'text-[#f5a623]' : 'text-[#666666] hover:text-[#f5a623]'
-            }`}
+            className={`flex items-center gap-1.5 transition-colors group ${showComments ? 'text-[#f5a623]' : 'text-[#666666] hover:text-[#f5a623]'
+              }`}
           >
             <MessageCircle className="h-5 w-5" />
             <span className={`text-[13px] font-medium ${showComments ? 'text-[#f5a623]' : 'text-[#888888] group-hover:text-[#f5a623]'}`}>

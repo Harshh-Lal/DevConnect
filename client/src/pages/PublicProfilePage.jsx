@@ -1,15 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axiosInstance from '../lib/axios';
 import { useAuth } from '../context/AuthContext';
 import { Loader2, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import PostCard from '../components/feed/PostCard';
-import { Code } from 'lucide-react'; // Ensure Github is imported!
-import EditProfileModal from '../components/profile/EditProfileModal'; // Import our new modal
+import { Code } from 'lucide-react';
+import EditProfileModal from '../components/profile/EditProfileModal';
+import FollowButton from '../components/FollowButton';
 
 export default function PublicProfilePage() {
-  const { username } = useParams(); // Grabs "harsh" from /users/harsh
+  const { username } = useParams();
   const { currentUser } = useAuth();
 
   const [profileData, setProfileData] = useState(null);
@@ -17,23 +18,24 @@ export default function PublicProfilePage() {
   const [error, setError] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await axiosInstance.get(`/users/${username}`);
-        setProfileData(response.data);
-      } catch (err) {
-        console.error("Failed to fetch profile:", err);
-        setError("Developer not found.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchProfile();
+  const fetchProfile = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await axiosInstance.get(`/users/${username}`);
+      // getPublicProfile wraps data in { success, data: { ...user, isFollowing } }
+      setProfileData(response.data.data ?? response.data);
+    } catch (err) {
+      console.error("Failed to fetch profile:", err);
+      setError("Developer not found.");
+    } finally {
+      setIsLoading(false);
+    }
   }, [username]);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
 
   if (isLoading) {
     return (
@@ -62,9 +64,7 @@ export default function PublicProfilePage() {
         {/* Profile Header Card */}
         <div className="rounded-xl border border-[#2a2a2a] bg-[#111111] overflow-hidden">
           {/* Banner */}
-          <div className="h-32 bg-gradient-to-r from-[#2a2a2a] to-[#1a1a1a] relative">
-            {/* We can add a banner image feature later! */}
-          </div>
+          <div className="h-32 bg-gradient-to-r from-[#2a2a2a] to-[#1a1a1a] relative" />
 
           <div className="px-6 pb-6 relative">
             {/* Avatar */}
@@ -72,16 +72,21 @@ export default function PublicProfilePage() {
               {(profileData.displayName || profileData.username).charAt(0).toUpperCase()}
             </div>
 
-            {/* Edit Profile Button (Only shows if it's YOUR profile) */}
+            {/* Action Button Row */}
             <div className="flex justify-end pt-4">
               {isOwnProfile ? (
-                <button onClick={() => setIsEditModalOpen(true)} className="rounded-full border border-[#f5a623] text-[#f5a623] px-4 py-1.5 text-sm font-semibold hover:bg-[#f5a623]/10 transition-colors">
+                <button
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="rounded-full border border-[#f5a623] text-[#f5a623] px-4 py-1.5 text-sm font-semibold hover:bg-[#f5a623]/10 transition-colors"
+                >
                   Edit Profile
                 </button>
               ) : (
-                <button className="rounded-full bg-[#f5a623] text-black px-4 py-1.5 text-sm font-semibold hover:bg-[#e09415] transition-colors">
-                  Follow
-                </button>
+                <FollowButton
+                  userId={profileData.id}
+                  initialIsFollowing={profileData.isFollowing}
+                  onToggle={fetchProfile}
+                />
               )}
             </div>
 
@@ -107,13 +112,20 @@ export default function PublicProfilePage() {
               </a>
             )}
 
+            {/* Stats Row */}
             <div className="mt-4 flex flex-wrap gap-4 text-sm text-[#888888]">
               <div className="flex items-center gap-1.5">
                 <Calendar className="h-4 w-4" />
                 Joined {format(new Date(profileData.createdAt), 'MMMM yyyy')}
               </div>
               <div className="flex items-center gap-1.5 font-medium">
-                <span className="text-[#ffffff]">{profileData._count.posts}</span> Projects Built
+                <span className="text-[#ffffff]">{profileData._count?.posts ?? 0}</span> Projects Built
+              </div>
+              <div className="flex items-center gap-1.5 font-medium">
+                <span className="text-[#ffffff]">{profileData._count?.followers ?? 0}</span> Followers
+              </div>
+              <div className="flex items-center gap-1.5 font-medium">
+                <span className="text-[#ffffff]">{profileData._count?.following ?? 0}</span> Following
               </div>
             </div>
           </div>
@@ -133,7 +145,6 @@ export default function PublicProfilePage() {
                 key={post.id}
                 post={post}
                 currentUser={currentUser}
-                // Note: If they delete a post here, you might want to refresh the profile data or handle state!
                 onPostDeleted={() => window.location.reload()}
               />
             ))
@@ -147,7 +158,6 @@ export default function PublicProfilePage() {
         onClose={() => setIsEditModalOpen(false)}
         currentData={profileData}
         onProfileUpdated={(updatedData) => {
-          // Instantly update the UI with the new data without reloading the page!
           setProfileData({ ...profileData, ...updatedData });
         }}
       />
