@@ -158,9 +158,8 @@ export default function HomePage() {
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#181818] border border-[#2a2a2a] mb-4">
                 <Telescope className="h-8 w-8 text-[#f5a623]" />
               </div>
-              <h2 className="text-xl font-bold text-[#ffffff]">Your feed is empty</h2>
-              <p className="mt-2 text-[#888888] max-w-sm">
-                Follow some developers to see their projects here, or share what you're working on!
+              <p className="text-lg font-medium text-[#ffffff] max-w-sm">
+                Your feed is empty — follow some developers to see their work here
               </p>
               <Link
                 to="/explore"

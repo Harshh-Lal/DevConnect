@@ -122,6 +122,7 @@ export const getMe = async (req, res) => {
                     select: {
                         followers: true,
                         following: true,
+                        posts: true,
                     },
                 },
             },

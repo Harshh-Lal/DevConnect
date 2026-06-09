@@ -15,21 +15,6 @@ export default function CommentSection({ postId, setCommentCount }) {
   useEffect(() => {
     const fetchComments = async () => {
       try {
-        if (import.meta.env.DEV) {
-          await new Promise(resolve => setTimeout(resolve, 600));
-          setComments([
-            {
-              id: 'c1',
-              content: 'Wow, this looks absolutely incredible!',
-              createdAt: new Date(Date.now() - 3600000).toISOString(),
-              authorId: 'user2',
-              author: { displayName: 'Alice Lee', username: 'alicelee', avatarUrl: null }
-            }
-          ]);
-          setIsLoading(false);
-          return;
-        }
-
         const response = await axiosInstance.get(`/posts/${postId}/comments`);
         setComments(response.data.comments || response.data);
       } catch (error) {
@@ -50,26 +35,6 @@ export default function CommentSection({ postId, setCommentCount }) {
     try {
       const commentPayload = { content: newComment };
       
-      if (import.meta.env.DEV) {
-        await new Promise(resolve => setTimeout(resolve, 400));
-        const addedComment = {
-          id: Math.random().toString(36).substring(7),
-          ...commentPayload,
-          createdAt: new Date().toISOString(),
-          authorId: currentUser.id,
-          author: {
-            displayName: currentUser.displayName,
-            username: currentUser.username,
-            avatarUrl: currentUser.avatarUrl
-          }
-        };
-        setComments([...comments, addedComment]);
-        setCommentCount(prev => prev + 1);
-        setNewComment('');
-        setIsSubmitting(false);
-        return;
-      }
-
       const response = await axiosInstance.post(`/posts/${postId}/comments`, commentPayload);
       const addedComment = response.data.comment || response.data;
       setComments([...comments, addedComment]);
@@ -87,12 +52,6 @@ export default function CommentSection({ postId, setCommentCount }) {
       const prevComments = [...comments];
       setComments(comments.filter(c => c.id !== commentId));
       setCommentCount(prev => prev - 1);
-
-      if (import.meta.env.DEV) {
-        await new Promise(resolve => setTimeout(resolve, 300));
-        toast.success("Comment deleted");
-        return;
-      }
 
       await axiosInstance.delete(`/posts/${postId}/comments/${commentId}`);
       toast.success("Comment deleted");

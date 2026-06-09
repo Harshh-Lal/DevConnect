@@ -155,3 +155,106 @@ export const getExploreFeed = async (req, res) => {
     }
 };
 
+// ─── POST DELETION ─────────
+export const deletePost = async (req, res) => {
+    try {
+        const { postId } = req.params;
+        const userId = req.user.userId;
+
+        const post = await prisma.post.findUnique({ where: { id: postId } });
+
+        if (!post) {
+            return res.status(404).json({ message: "Post not found" });
+        }
+
+        if (post.authorId !== userId) {
+            return res.status(403).json({ message: "You are not authorized to delete this post" });
+        }
+
+        await prisma.post.delete({ where: { id: postId } });
+
+        res.status(200).json({ success: true, message: "Post deleted successfully" });
+    } catch (error) {
+        console.error("ERROR DELETING POST:", error);
+        res.status(500).json({ message: "Failed to delete post." });
+    }
+};
+
+// ─── COMMENTS ─────────
+export const getComments = async (req, res) => {
+    try {
+        const { postId } = req.params;
+
+        const comments = await prisma.comment.findMany({
+            where: { postId },
+            orderBy: { createdAt: 'asc' },
+            include: {
+                author: {
+                    select: { id: true, username: true, displayName: true, avatarUrl: true }
+                }
+            }
+        });
+
+        res.status(200).json({ success: true, comments });
+    } catch (error) {
+        console.error("ERROR FETCHING COMMENTS:", error);
+        res.status(500).json({ message: "Failed to fetch comments." });
+    }
+};
+
+export const createComment = async (req, res) => {
+    try {
+        const { postId } = req.params;
+        const { content } = req.body;
+        const userId = req.user.userId;
+
+        if (!content || !content.trim()) {
+            return res.status(400).json({ message: "Comment content is required" });
+        }
+
+        const comment = await prisma.comment.create({
+            data: {
+                content,
+                postId,
+                authorId: userId
+            },
+            include: {
+                author: {
+                    select: { id: true, username: true, displayName: true, avatarUrl: true }
+                }
+            }
+        });
+
+        res.status(201).json({ success: true, comment });
+    } catch (error) {
+        console.error("ERROR CREATING COMMENT:", error);
+        res.status(500).json({ message: "Failed to create comment." });
+    }
+};
+
+export const deleteComment = async (req, res) => {
+    try {
+        const { postId, commentId } = req.params;
+        const userId = req.user.userId;
+
+        const comment = await prisma.comment.findUnique({ where: { id: commentId } });
+
+        if (!comment) {
+            return res.status(404).json({ message: "Comment not found" });
+        }
+
+        // Verify the user is either the comment author or the post author
+        const post = await prisma.post.findUnique({ where: { id: postId } });
+        
+        if (comment.authorId !== userId && post.authorId !== userId) {
+            return res.status(403).json({ message: "You are not authorized to delete this comment" });
+        }
+
+        await prisma.comment.delete({ where: { id: commentId } });
+
+        res.status(200).json({ success: true, message: "Comment deleted successfully" });
+    } catch (error) {
+        console.error("ERROR DELETING COMMENT:", error);
+        res.status(500).json({ message: "Failed to delete comment." });
+    }
+};

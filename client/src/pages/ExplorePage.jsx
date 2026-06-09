@@ -124,8 +124,8 @@ export default function ExplorePage() {
 
         {/* Results */}
         {isLoading ? (
-          <div className="flex justify-center py-16">
-            <Loader2 className="h-8 w-8 animate-spin text-[#f5a623]" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[...Array(6)].map((_, i) => <UserCardSkeleton key={i} />)}
           </div>
         ) : users.length === 0 ? (
           <div className="rounded-xl border border-[#2a2a2a] bg-[#111111] py-16 text-center">
@@ -210,5 +210,31 @@ function UserCard({ user, currentUser }) {
     </div>
   );
 }
-
-
+function UserCardSkeleton() {
+  return (
+    <div className="rounded-xl border border-[#2a2a2a] bg-[#111111] p-5 flex flex-col gap-3 animate-pulse">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="h-11 w-11 rounded-full bg-[#1f1f1f] flex-shrink-0" />
+          <div className="flex flex-col gap-2 pt-1">
+            <div className="h-3 w-24 bg-[#1f1f1f] rounded" />
+            <div className="h-2 w-16 bg-[#1f1f1f] rounded" />
+          </div>
+        </div>
+        <div className="h-8 w-20 bg-[#1f1f1f] rounded-md" />
+      </div>
+      <div className="flex flex-col gap-2 mt-2">
+        <div className="h-2 w-full bg-[#1f1f1f] rounded" />
+        <div className="h-2 w-2/3 bg-[#1f1f1f] rounded" />
+      </div>
+      <div className="flex gap-2 mt-2">
+        <div className="h-5 w-12 bg-[#1f1f1f] rounded-full" />
+        <div className="h-5 w-16 bg-[#1f1f1f] rounded-full" />
+      </div>
+      <div className="flex gap-4 pt-3 border-t border-[#1f1f1f] mt-1">
+        <div className="h-3 w-20 bg-[#1f1f1f] rounded" />
+        <div className="h-3 w-20 bg-[#1f1f1f] rounded" />
+      </div>
+    </div>
+  );
+}
