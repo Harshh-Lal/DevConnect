@@ -62,7 +62,7 @@ export default function ProfileSnapshot() {
           <div className="w-full border-t border-[#2a2a2a] pt-[16px]">
             <p className="text-[11px] text-[#888888] uppercase tracking-wider mb-3">Skills</p>
             <div className="flex flex-wrap justify-center gap-2">
-              {currentUser.skills.slice(0, 4).map((skill) => (
+              {currentUser.skills.slice(0, 8).map((skill) => (
                 <span
                   key={skill}
                   className="rounded-full bg-[#1a1a1a] border border-[#2a2a2a] px-3 py-1 text-[11px] text-[#cccccc] transition-colors hover:border-[#f5a623] hover:text-[#f5a623]"

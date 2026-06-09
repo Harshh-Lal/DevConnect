@@ -100,6 +100,16 @@ export default function PublicProfilePage() {
               <p className="mt-3 text-sm text-[#cccccc] whitespace-pre-wrap">{profileData.bio}</p>
             )}
 
+            {profileData.skills && profileData.skills.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {profileData.skills.map(skill => (
+                  <span key={skill} className="rounded-full border border-[#2a2a2a] bg-[#1a1a1a] px-3 py-1 text-xs text-[#aaaaaa] hover:border-[#f5a623] hover:text-[#f5a623] transition-colors">
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            )}
+
             {profileData.githubUrl && (
               <a
                 href={profileData.githubUrl}

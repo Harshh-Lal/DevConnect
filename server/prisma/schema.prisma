@@ -24,6 +24,7 @@ model User {
   bio         String?
   avatarUrl   String?
   githubUrl   String?
+  skills      String[] @default([])
 
   // --- NEW: Relationships to Content ---
   posts    Post[]

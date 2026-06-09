@@ -24,7 +24,7 @@ const AuthView = {
 
 // ─── Zod schemas ──────────────────────────────────────────
 const signInSchema = z.object({
-  email: z.string().email('Invalid email address'),
+  identifier: z.string().min(2, 'Enter your email or username'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
 })
 
@@ -143,7 +143,7 @@ function AuthSignIn({ onForgotPassword, onSignUp }) {
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(signInSchema),
-    defaultValues: { email: '', password: '' },
+    defaultValues: { identifier: '', password: '' },
   })
 
   const onSubmit = async (data) => {
@@ -151,7 +151,7 @@ function AuthSignIn({ onForgotPassword, onSignUp }) {
     setError(null)
     try {
       const response = await api.post('/auth/login', { 
-        email: data.email, 
+        identifier: data.identifier, 
         password: data.password 
       })
 
@@ -186,18 +186,17 @@ function AuthSignIn({ onForgotPassword, onSignUp }) {
       <AuthError message={error} />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Email */}
         <div className="space-y-1.5">
-          <Label htmlFor="signin-email">Email</Label>
+          <Label htmlFor="signin-identifier">Email or Username</Label>
           <Input
-            id="signin-email"
-            type="email"
-            placeholder="you@example.com"
+            id="signin-identifier"
+            type="text"
+            placeholder="you@example.com or harsh_lal"
             disabled={isLoading}
-            className={cn(errors.email && 'border-red-500/70')}
-            {...register('email')}
+            className={cn(errors.identifier && 'border-red-500/70')}
+            {...register('identifier')}
           />
-          {errors.email && <p className="text-xs text-red-400">{errors.email.message}</p>}
+          {errors.identifier && <p className="text-xs text-red-400">{errors.identifier.message}</p>}
         </div>
 
         {/* Password */}

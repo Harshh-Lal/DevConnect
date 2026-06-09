@@ -4,6 +4,7 @@ import {
   updateProfile,
   getPublicProfile,
   getSuggestions,
+  searchUsers,
   followUser,
   unfollowUser,
   getFollowers,
@@ -16,6 +17,9 @@ router.put('/profile', verifyToken, updateProfile);
 
 // Suggestions for "Who to Follow" sidebar (must be BEFORE /:username wildcard)
 router.get('/suggestions', verifyToken, getSuggestions);
+
+// Search users by skills / name (must be BEFORE /:username wildcard)
+router.get('/search', verifyToken, searchUsers);
 
 // Fetch a user's public profile (Protected so only logged-in users can view it)
 router.get('/:username', verifyToken, getPublicProfile);

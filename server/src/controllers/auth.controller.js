@@ -58,14 +58,17 @@ export const register = async (req, res) => {
 
 export const login = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { identifier, password } = req.body;
 
-        if (!email || !password) {
-            return res.status(400).json({ message: 'Email and password are required.' });
+        if (!identifier || !password) {
+            return res.status(400).json({ message: 'Email/username and password are required.' });
         }
 
+        // Detect whether the user typed an email or a username
+        const isEmail = identifier.includes('@');
+
         const user = await prisma.user.findUnique({
-            where: { email },
+            where: isEmail ? { email: identifier } : { username: identifier },
         });
 
         if (!user) {
@@ -113,6 +116,7 @@ export const getMe = async (req, res) => {
                 bio: true,
                 avatarUrl: true,
                 githubUrl: true,
+                skills: true,
                 createdAt: true,
                 _count: {
                     select: {

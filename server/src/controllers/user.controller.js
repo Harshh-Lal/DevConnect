@@ -42,8 +42,8 @@ export const getUserProfile = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
     try {
-        const userId = req.user.userId; // Securely pulled from their JWT token
-        const { displayName, bio, avatarUrl, githubUrl } = req.body;
+        const userId = req.user.userId;
+        const { displayName, bio, avatarUrl, githubUrl, skills } = req.body;
 
         const updatedUser = await prisma.user.update({
             where: { id: userId },
@@ -51,7 +51,9 @@ export const updateProfile = async (req, res) => {
                 displayName,
                 bio,
                 avatarUrl,
-                githubUrl
+                githubUrl,
+                // Only update skills if explicitly provided in the request
+                ...(Array.isArray(skills) ? { skills } : {}),
             }
         });
 
@@ -138,12 +140,17 @@ export const getPublicProfile = async (req, res, next) => {
       select: {
         id: true, username: true, displayName: true,
         bio: true, avatarUrl: true, githubUrl: true,
+        skills: true,
         createdAt: true,
         posts: {
           orderBy: { createdAt: 'desc' },
-          include: { _count: { select: { likes: true, comments: true } } }
+          include: {
+            author: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
+            _count: { select: { likes: true, comments: true } },
+            likes: { select: { userId: true } },
+          }
         },
-        _count: { select: { followers: true, following: true } }
+        _count: { select: { followers: true, following: true, posts: true } }
       }
     });
 
@@ -192,4 +199,63 @@ export const getSuggestions = async (req, res, next) => {
 
     res.json({ success: true, data: suggestions });
   } catch (err) { next(err); }
-};
+};
+
+// GET /api/users/search?skills=React,Node.js&q=name
+export const searchUsers = async (req, res, next) => {
+  try {
+    const currentUserId = req.user.userId;
+    const skillQuery = req.query.skills;
+    const textQuery  = req.query.q?.trim();
+    const skills = skillQuery ? skillQuery.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+    const where = {
+      // Never return the current user in results
+      NOT: { id: currentUserId },
+    };
+
+    if (skills.length > 0) {
+      where.skills = { hasSome: skills };
+    }
+
+    if (textQuery) {
+      where.OR = [
+        { displayName: { contains: textQuery, mode: 'insensitive' } },
+        { username:    { contains: textQuery, mode: 'insensitive' } },
+      ];
+    }
+
+    // Run users query and follow-status check in parallel
+    const [users, followingRecords] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          avatarUrl: true,
+          bio: true,
+          skills: true,
+          _count: { select: { followers: true, posts: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+      }),
+      prisma.follow.findMany({
+        where: { followerId: currentUserId },
+        select: { followingId: true },
+      }),
+    ]);
+
+    const followingSet = new Set(followingRecords.map(f => f.followingId));
+
+    const data = users.map(user => ({
+      ...user,
+      isFollowing: followingSet.has(user.id),
+    }));
+
+    res.json({ success: true, data });
+  } catch (err) { next(err); }
+};
+
+

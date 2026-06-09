@@ -78,35 +78,46 @@ export const createPost = async (req, res) => {
     }
 };
 
-// ─── GET ALL POSTS (THE TIMELINE) ───────────────────────
+// ─── GET FOLLOWING FEED (THE TIMELINE) ───────────────────────
 export const getFeed = async (req, res) => {
     try {
+        const userId = req.user.userId;
         const { cursor, limit = 5 } = req.query;
         const take = Number(limit);
 
+        // Step 1: Get IDs of everyone the current user follows
+        const following = await prisma.follow.findMany({
+            where: { followerId: userId },
+            select: { followingId: true },
+        });
+        const followingIds = following.map(f => f.followingId);
+
+        // Step 2: If not following anyone, return empty (frontend handles this)
+        if (followingIds.length === 0) {
+            return res.status(200).json({ posts: [], nextCursor: null });
+        }
+
+        // Step 3: Fetch posts from followed users with cursor-based pagination
         const query = {
-            take: take,
+            where: { authorId: { in: followingIds } },
+            take,
             orderBy: { createdAt: 'desc' },
             include: {
-                author: { select: { username: true, displayName: true, avatarUrl: true } },
+                author: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
                 _count: { select: { comments: true, likes: true } },
-                likes: { select: { userId: true } } // <-- ADDED THIS!
-            }
+                likes: { select: { userId: true } },
+            },
         };
 
         if (cursor) {
             query.cursor = { id: cursor };
-            query.skip = 1; 
+            query.skip = 1;
         }
 
         const posts = await prisma.post.findMany(query);
         const nextId = posts.length === take ? posts[take - 1].id : null;
 
-        res.status(200).json({
-            posts: posts,
-            nextCursor: nextId
-        });
-
+        res.status(200).json({ posts, nextCursor: nextId });
     } catch (error) {
         console.error("ERROR FETCHING FEED:", error);
         res.status(500).json({ message: "Failed to fetch feed." });
@@ -123,7 +134,7 @@ export const getExploreFeed = async (req, res) => {
             take,
             orderBy: { createdAt: 'desc' },
             include: {
-                author: { select: { username: true, displayName: true, avatarUrl: true } },
+                author: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
                 _count: { select: { comments: true, likes: true } },
                 likes: { select: { userId: true } } // <-- ADDED THIS!
             }
@@ -143,3 +154,4 @@ export const getExploreFeed = async (req, res) => {
         res.status(500).json({ message: "Failed to fetch explore feed." });
     }
 };
+
