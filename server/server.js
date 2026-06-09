@@ -5,7 +5,10 @@ import app from './src/app.js';
 const PORT = process.env.PORT || 5000;
 
 app.use(cors({
-    origin: "http://localhost:5173",
+    origin: [
+      "http://localhost:5173",
+      "https://dev-connect-chi-seven.vercel.app"
+    ],
     credentials: true
 }))
 
