@@ -15,7 +15,7 @@
 [![JWT](https://img.shields.io/badge/JWT-000000?style=flat-square&logo=jsonwebtokens&logoColor=white)](https://jwt.io/)
 [![Cloudinary](https://img.shields.io/badge/Cloudinary-3448C5?style=flat-square&logo=cloudinary&logoColor=white)](https://cloudinary.com/)
 
-**[Live Demo](https://devconnect.vercel.app)** &nbsp;·&nbsp; **[Report a Bug](https://github.com/harshh-lal/devconnect/issues)** &nbsp;·&nbsp; **[Request Feature](https://github.com/harshh-lal/devconnect/issues)**
+**[Live Demo](https://dev-connect-chi-seven.vercel.app)** &nbsp;·&nbsp; **[Report a Bug](https://github.com/harshh-lal/devconnect/issues)** &nbsp;·&nbsp; **[Request Feature](https://github.com/harshh-lal/devconnect/issues)**
 
 </div>
 
