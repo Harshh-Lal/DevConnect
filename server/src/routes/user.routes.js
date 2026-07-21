@@ -26,7 +26,7 @@ router.get('/:username', verifyToken, getPublicProfile);
 
 router.post('/:id/follow', verifyToken, followUser);
 router.delete('/:id/follow', verifyToken, unfollowUser);
-router.get('/:id/followers', getFollowers);
-router.get('/:id/following', getFollowing);
+router.get('/:id/followers', verifyToken, getFollowers);
+router.get('/:id/following', verifyToken, getFollowing);
 
 export default router;

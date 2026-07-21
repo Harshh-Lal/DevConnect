@@ -104,6 +104,8 @@ export const unfollowUser = async (req, res, next) => {
 
 export const getFollowers = async (req, res, next) => {
     try {
+        const currentUserId = req.user?.userId;
+
         const follows = await prisma.follow.findMany({
             where: { followingId: req.params.id },
             include: {
@@ -112,12 +114,33 @@ export const getFollowers = async (req, res, next) => {
                 }
             }
         });
-        res.json({ success: true, data: follows.map(f => f.follower) });
+
+        const users = follows.map(f => f.follower);
+
+        // Bulk-check which of these users the current viewer already follows
+        let followingSet = new Set();
+        if (currentUserId && users.length > 0) {
+            const myFollows = await prisma.follow.findMany({
+                where: {
+                    followerId: currentUserId,
+                    followingId: { in: users.map(u => u.id) },
+                },
+                select: { followingId: true },
+            });
+            followingSet = new Set(myFollows.map(f => f.followingId));
+        }
+
+        res.json({
+            success: true,
+            data: users.map(u => ({ ...u, isFollowing: followingSet.has(u.id) })),
+        });
     } catch (err) { next(err); }
 };
 
 export const getFollowing = async (req, res, next) => {
     try {
+        const currentUserId = req.user?.userId;
+
         const follows = await prisma.follow.findMany({
             where: { followerId: req.params.id },
             include: {
@@ -126,7 +149,26 @@ export const getFollowing = async (req, res, next) => {
                 }
             }
         });
-        res.json({ success: true, data: follows.map(f => f.following) });
+
+        const users = follows.map(f => f.following);
+
+        // Bulk-check which of these users the current viewer already follows
+        let followingSet = new Set();
+        if (currentUserId && users.length > 0) {
+            const myFollows = await prisma.follow.findMany({
+                where: {
+                    followerId: currentUserId,
+                    followingId: { in: users.map(u => u.id) },
+                },
+                select: { followingId: true },
+            });
+            followingSet = new Set(myFollows.map(f => f.followingId));
+        }
+
+        res.json({
+            success: true,
+            data: users.map(u => ({ ...u, isFollowing: followingSet.has(u.id) })),
+        });
     } catch (err) { next(err); }
 };
 
