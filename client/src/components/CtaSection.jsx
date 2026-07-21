@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 
-const CtaSection = () => {
+const CtaSection = ({ openAuth }) => {
   return (
     <section
       id="cta"
@@ -28,6 +28,7 @@ const CtaSection = () => {
         >
           <button
             id="cta-create-profile-btn"
+            onClick={() => openAuth?.('sign-up')}
             className="mt-8 bg-[#f5a623] text-black font-semibold text-sm px-8 py-4 rounded-sm hover:bg-[#e09620] transition-colors duration-150 cursor-pointer font-sans"
           >
             Create Your Profile →
@@ -35,13 +36,13 @@ const CtaSection = () => {
 
           <p className="font-mono text-xs text-[#555] mt-4">
             Already have an account?{' '}
-            <a
-              href="/login"
+            <button
               id="cta-login-link"
-              className="text-[#888] hover:text-[#f0f0f0] transition-colors duration-150 no-underline"
+              onClick={() => openAuth?.('sign-in')}
+              className="text-[#888] hover:text-[#f0f0f0] transition-colors duration-150 bg-transparent border-none cursor-pointer font-mono text-xs p-0"
             >
               Log in
-            </a>
+            </button>
           </p>
         </motion.div>
       </motion.div>
@@ -50,3 +51,4 @@ const CtaSection = () => {
 }
 
 export default CtaSection
+

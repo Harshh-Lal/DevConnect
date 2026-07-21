@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react'
 import { cn } from '../lib/utils'
 import { useScroll } from './ui/use-scroll'
 import { MenuToggleIcon } from './ui/menu-toggle-icon'
-import AuthModal from './AuthModal'
 import { AuthView } from './ui/auth-form'
 import { useAuth } from '../context/AuthContext'
 
@@ -12,12 +11,9 @@ const navLinks = [
   { label: 'Developers', href: '#developers' },
 ]
 
-const Navbar = () => {
+const Navbar = ({ openAuth }) => {
   const [open, setOpen] = useState(false)
   const scrolled = useScroll(10)
-
-  const [authModalOpen, setAuthModalOpen] = useState(false)
-  const [authInitialView, setAuthInitialView] = useState(AuthView.SIGN_IN)
 
   const { currentUser, isAuthenticated, logout } = useAuth()
 
@@ -42,10 +38,9 @@ const Navbar = () => {
     logout() // delegates to AuthContext which clears token + redirects
   }
 
-  const openAuth = (view) => {
-    setAuthInitialView(view)
-    setAuthModalOpen(true)
+  const handleOpenAuth = (view) => {
     setOpen(false) // ensure modal cleanly overlays mobile menu
+    openAuth?.(view)
   }
 
   /* Lock body scroll when mobile menu is open */
@@ -154,7 +149,7 @@ const Navbar = () => {
             <>
               <button
                 id="navbar-login-btn"
-                onClick={() => openAuth(AuthView.SIGN_IN)}
+                onClick={() => handleOpenAuth(AuthView.SIGN_IN)}
                 className={cn(
                   'border border-[#333] text-[#f0f0f0] font-sans',
                   'px-4 py-1.5 text-sm rounded-sm',
@@ -165,7 +160,7 @@ const Navbar = () => {
               </button>
               <button
                 id="navbar-cta-btn"
-                onClick={() => openAuth(AuthView.SIGN_UP)}
+                onClick={() => handleOpenAuth(AuthView.SIGN_UP)}
                 className={cn(
                   'bg-[#f5a623] text-black font-semibold font-sans',
                   'px-4 py-1.5 text-sm rounded-sm',
@@ -261,7 +256,7 @@ const Navbar = () => {
               <>
                 <button
                   id="mobile-login-btn"
-                  onClick={() => openAuth(AuthView.SIGN_IN)}
+                  onClick={() => handleOpenAuth(AuthView.SIGN_IN)}
                   className={cn(
                     'w-full border border-[#333] text-[#f0f0f0] font-sans',
                     'px-4 py-3 text-sm rounded-sm',
@@ -272,7 +267,7 @@ const Navbar = () => {
                 </button>
                 <button
                   id="mobile-cta-btn"
-                  onClick={() => openAuth(AuthView.SIGN_UP)}
+                  onClick={() => handleOpenAuth(AuthView.SIGN_UP)}
                   className={cn(
                     'w-full bg-[#f5a623] text-black font-semibold font-sans',
                     'px-4 py-3 text-sm rounded-sm',
@@ -287,14 +282,6 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* ══════════════════════════════════════
-          Auth Modal Overlay
-      ══════════════════════════════════════ */}
-      <AuthModal
-        isOpen={authModalOpen}
-        initialView={authInitialView}
-        onClose={() => setAuthModalOpen(false)}
-      />
     </header>
   )
 }

@@ -48,7 +48,7 @@ const fadeVariant = {
   },
 }
 
-const HeroSection = () => {
+const HeroSection = ({ openAuth }) => {
   const globeContainerRef = useRef(null)
 
   // Dynamically load the Framer globe embed script
@@ -166,12 +166,17 @@ const HeroSection = () => {
           >
             <button
               id="hero-get-started-btn"
+              onClick={() => openAuth?.('sign-up')}
               className="bg-[#f5a623] text-black font-semibold text-sm px-6 py-3 rounded-sm hover:bg-[#e09620] transition-colors duration-150 cursor-pointer font-sans"
             >
               Get Started →
             </button>
             <button
               id="hero-explore-btn"
+              onClick={() => {
+                const el = document.getElementById('features')
+                el?.scrollIntoView({ behavior: 'smooth' })
+              }}
               className="border border-[#333] text-[#f0f0f0] text-sm px-6 py-3 rounded-sm hover:bg-[#181818] transition-colors duration-150 cursor-pointer font-sans"
             >
               Explore Developers
