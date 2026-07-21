@@ -2,14 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axiosInstance from '../lib/axios';
 import { useAuth } from '../context/AuthContext';
-import { Loader2, Calendar, RefreshCw } from 'lucide-react';
+import { Loader2, Calendar, RefreshCw, Code } from 'lucide-react';
 import { format } from 'date-fns';
 import PostCard from '../components/feed/PostCard';
-import { Code } from 'lucide-react';
 import EditProfileModal from '../components/profile/EditProfileModal';
 import FollowButton from '../components/FollowButton';
 import RepoCard, { RepoCardSkeleton } from '../components/profile/RepoCard';
 import { useGithubRepos } from '../hooks/useGithubRepos';
+import FollowListModal from '../components/profile/FollowListModal';
 
 export default function PublicProfilePage() {
   const { username } = useParams();
@@ -20,6 +20,8 @@ export default function PublicProfilePage() {
   const [error, setError] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  // null | 'followers' | 'following'
+  const [followModal, setFollowModal] = useState(null);
 
   // GitHub repos — auto-fetches when profileData.githubUrl changes
   const { repos, loading: reposLoading, error: reposError, refetch: refetchRepos } = useGithubRepos(profileData?.githubUrl);
@@ -167,12 +169,18 @@ export default function PublicProfilePage() {
               <div className="flex items-center gap-1.5 font-medium">
                 <span className="text-[#ffffff]">{profileData.posts?.length ?? profileData._count?.posts ?? 0}</span> Projects Built
               </div>
-              <div className="flex items-center gap-1.5 font-medium">
+              <button
+                onClick={() => setFollowModal('followers')}
+                className="flex items-center gap-1.5 font-medium hover:text-[#f5a623] transition-colors cursor-pointer"
+              >
                 <span className="text-[#ffffff]">{profileData._count?.followers ?? 0}</span> Followers
-              </div>
-              <div className="flex items-center gap-1.5 font-medium">
+              </button>
+              <button
+                onClick={() => setFollowModal('following')}
+                className="flex items-center gap-1.5 font-medium hover:text-[#f5a623] transition-colors cursor-pointer"
+              >
                 <span className="text-[#ffffff]">{profileData._count?.following ?? 0}</span> Following
-              </div>
+              </button>
             </div>
           </div>
         </div>
@@ -262,6 +270,15 @@ export default function PublicProfilePage() {
         onProfileUpdated={(updatedData) => {
           setProfileData({ ...profileData, ...updatedData });
         }}
+      />
+
+      <FollowListModal
+        isOpen={followModal !== null}
+        onClose={() => setFollowModal(null)}
+        userId={profileData.id}
+        initialTab={followModal ?? 'followers'}
+        followerCount={profileData._count?.followers ?? 0}
+        followingCount={profileData._count?.following ?? 0}
       />
 
     </div>
